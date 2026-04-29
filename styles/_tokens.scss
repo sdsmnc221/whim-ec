@@ -1,0 +1,46 @@
+:root {
+  --f-display: "Almendra", serif; // → titles, theme names, score numbers
+  --f-body: "IM Fell DW Pica", serif; // → question text, passages, explanations
+  --f-sans:
+    "IBM Plex Sans", sans-serif; //→ answer options small UI (legibility on mobile)
+  --f-mono:
+    "IBM Plex Mono", monospace; //→ timer, Q numbers, keyboard hints, labels
+
+  --c-bleu: #002395; // Bleu de France — nav, progress, active
+  --c-rouge: #ed2939; // Rouge République — errors, flags
+  --c-linen: #e8e4d9; // Lin — base background
+  --c-linenD: #d8d2c2; // Lin foncé — secondary bg, hover
+  --c-craie: #f4f1e8; // Craie — card/patch surface
+  --c-encre: #1a1a2e; // Encre — primary text
+  --c-sepia: #9c8b72; // Sépia — borders, stitch lines
+  --c-vert: #2d6a4f; // Vert broderie — correct state
+  --c-bleu-pale: #c8d0ee; // Bleu pâle — hover, soft highlight
+  --c-orange: #c4820a; // difficulty: difficile
+}
+
+@mixin stitch-border($color: var(--c-sepia), $w: 1px) {
+  border: $w dashed $color;
+}
+
+// const linenBg = {
+//   backgroundColor:T.linen,
+//   backgroundImage:`repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(156,139,114,.07) 3px,rgba(156,139,114,.07) 4px),repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(156,139,114,.07) 3px,rgba(156,139,114,.07) 4px)`,
+// };
+@mixin linen-bg {
+  background-color: var(--c-linen);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(156, 139, 114, 0.07) 3px,
+      rgba(156, 139, 114, 0.07) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3px,
+      rgba(156, 139, 114, 0.07) 3px,
+      rgba(156, 139, 114, 0.07) 4px
+    );
+}

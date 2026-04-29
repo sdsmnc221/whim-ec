@@ -1,0 +1,29 @@
+body {
+  background-color: var(--c-linen);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(156, 139, 114, 0.07) 3px,
+      rgba(156, 139, 114, 0.07) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3px,
+      rgba(156, 139, 114, 0.07) 3px,
+      rgba(156, 139, 114, 0.07) 4px
+    );
+}
+
+.stamp {
+  font-family: var(--f-body);
+  font-style: italic;
+  font-size: 0.82rem;
+  border: 1px dashed currentColor;
+  padding: 0.05rem 0.5rem;
+  display: inline-block;
+  transform: rotate(-1.5deg); // varies per stamp type
+  opacity: 0.9;
+}
