@@ -46,10 +46,7 @@
         </div>
       </WhimcPatch>
 
-      <WhimcBtn
-        variant="primary"
-        :class="$style.btnStart"
-        @click="$emit('start')"
+      <WhimcBtn variant="primary" :class="$style.btnStart" @click="handleStart"
         >commencer l'examen →</WhimcBtn
       >
 
@@ -59,34 +56,23 @@
 </template>
 
 <script setup lang="ts">
-import { Ref, ref } from "vue";
+import type { Ref } from "vue";
+import { ref } from "vue";
+import { THEMES, RULES } from "../../utils/constants";
 
 import CrossStitch from "../ui/CrossStitch.vue";
 import WhimcPatch from "../ui/WhimcPatch.vue";
 import WhimcBtn from "../ui/WhimcBtn.vue";
 
-const THEMES = [
-  "Tous les thèmes",
-  "Principes et valeurs de la République",
-  "Système institutionnel et politique",
-  "Droits et devoirs",
-  "Histoire, géographie et culture",
-  "Vivre dans la société française",
-];
-
-const RULES = [
-  ["40 questions", "28 conn. + 12 mises en situation"],
-  ["45 minutes", "durée maximale"],
-  ["32 / 40 (80 %)", "seuil de réussite"],
-  ["Réponses masquées", "aucune correction pendant l'examen"],
-  ["[Tab] Faible confiance", "orange · à réviser avant soumission"],
-  ["[S] Soumettre", "boucle : faible confiance + sans réponse"],
-];
-
 const themeSetIndex: Ref<number> = ref(0);
 
 const handleThemeSetClick = (index: number) => {
   themeSetIndex.value = index;
+};
+
+const handleStart = () => {
+  sessionStorage.setItem("examReady", "1");
+  navigateTo({ path: "/exam", query: { theme: themeSetIndex.value } });
 };
 </script>
 
