@@ -16,4 +16,12 @@ const RULES = [
   ["[S] Soumettre", "boucle : faible confiance + sans réponse"],
 ];
 
-export { THEMES, RULES };
+const THEME_SHORT: Record<string, string> = {
+  "Principes et valeurs de la République": "Principes",
+  "Système institutionnel et politique": "Institutions",
+  "Droits et devoirs": "Droits",
+  "Histoire, géographie et culture": "Histoire",
+  "Vivre dans la société française": "Société",
+};
+
+export { THEMES, RULES, THEME_SHORT };
