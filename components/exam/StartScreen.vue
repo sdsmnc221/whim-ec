@@ -120,6 +120,33 @@
             {{ copied ? "× copié !" : "copier" }}
           </button>
         </div>
+
+        <div v-if="statsDist.total > 0" :class="$style.statsDist">
+          <div :class="$style.statsDistRow">
+            <span :class="$style.statsDistLabel">maîtrisé</span>
+            <span :class="[$style.statsDistCount, $style.statsMaitrise]">{{
+              statsDist.maitrise
+            }}</span>
+          </div>
+          <div :class="$style.statsDistRow">
+            <span :class="$style.statsDistLabel">fragile</span>
+            <span :class="[$style.statsDistCount, $style.statsFragile]">{{
+              statsDist.fragile
+            }}</span>
+          </div>
+          <div :class="$style.statsDistRow">
+            <span :class="$style.statsDistLabel">zone rouge</span>
+            <span :class="[$style.statsDistCount, $style.statsRouge]">{{
+              statsDist.rouge
+            }}</span>
+          </div>
+          <div :class="$style.statsDistSep" />
+          <div :class="$style.statsDistRow">
+            <span :class="$style.statsDistLabel">questions vues</span>
+            <span :class="$style.statsDistCount">{{ statsDist.total }}</span>
+          </div>
+        </div>
+        <div v-else :class="$style.statsEmpty">aucune session enregistrée</div>
       </WhimcPatch>
 
       <WhimcBtn
@@ -139,6 +166,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { THEMES, RULES } from "../../utils/constants";
+import { useStats } from "../../composables/useStats";
 import CrossStitch from "../ui/CrossStitch.vue";
 import WhimcPatch from "../ui/WhimcPatch.vue";
 import WhimcBtn from "../ui/WhimcBtn.vue";
@@ -164,6 +192,36 @@ const fileError = ref("");
 const syncKey = ref("");
 const copied = ref(false);
 
+const { stats: questionStats, pullFromConvex, setSyncKey } = useStats();
+
+const SPEED_MAX_MS = 60_000;
+const VIEWS_MAX = 20;
+
+function difficultyScore(q: {
+  views: number;
+  correct: number;
+  attempts: number;
+  totalTimeMs: number;
+}): number {
+  if (q.attempts === 0) return 0.5;
+  const errorRate = (q.attempts - q.correct) / q.attempts;
+  const speedNorm = Math.min(q.totalTimeMs / q.attempts / SPEED_MAX_MS, 1);
+  const viewsNorm = Math.min(q.views / VIEWS_MAX, 1);
+  return errorRate * 0.5 + speedNorm * 0.3 + viewsNorm * 0.2;
+}
+
+const statsDist = computed(() => {
+  const entries = Object.values(questionStats.value);
+  const dist = { maitrise: 0, fragile: 0, rouge: 0 };
+  for (const q of entries) {
+    const score = difficultyScore(q);
+    if (score < 0.3) dist.maitrise++;
+    else if (score < 0.6) dist.fragile++;
+    else dist.rouge++;
+  }
+  return { ...dist, total: entries.length };
+});
+
 onMounted(() => {
   const savedSource = localStorage.getItem(
     LS_SOURCE_KEY,
@@ -173,11 +231,15 @@ onMounted(() => {
   if (savedUrl) datasetUrl.value = savedUrl;
   const savedSyncKey = localStorage.getItem(LS_SYNC_KEY);
   if (savedSyncKey) syncKey.value = savedSyncKey;
+  pullFromConvex();
 });
 
 watch(datasetSource, (v) => localStorage.setItem(LS_SOURCE_KEY, v));
 watch(datasetUrl, (v) => localStorage.setItem(LS_URL_KEY, v));
-watch(syncKey, (v) => localStorage.setItem(LS_SYNC_KEY, v));
+watch(syncKey, (v) => {
+  localStorage.setItem(LS_SYNC_KEY, v);
+  if (v) setSyncKey(v);
+});
 
 function handleFileSelect(e: Event) {
   fileError.value = "";
@@ -486,5 +548,56 @@ function handleStart() {
   color: var(--c-sepia);
   text-align: center;
   margin-top: 2rem;
+}
+
+.statsDist {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.statsDistRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px dashed var(--c-linenD);
+  padding: 0.28rem 0;
+}
+
+.statsDistLabel {
+  font-family: var(--f-display);
+  font-size: 0.88rem;
+  color: var(--c-sepia);
+}
+
+.statsDistCount {
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  color: var(--c-encre);
+}
+
+.statsMaitrise {
+  color: var(--c-vert);
+}
+
+.statsFragile {
+  color: var(--c-orange);
+}
+
+.statsRouge {
+  color: var(--c-rouge);
+}
+
+.statsDistSep {
+  height: 0.2rem;
+}
+
+.statsEmpty {
+  margin-top: 0.5rem;
+  font-family: var(--f-body);
+  font-style: italic;
+  font-size: 0.7rem;
+  color: var(--c-sepia);
+  opacity: 0.6;
 }
 </style>
