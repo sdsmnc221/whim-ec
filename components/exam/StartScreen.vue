@@ -9,13 +9,18 @@
           whim<span style="color: var(--c-rouge)">·</span>ec
         </h1>
         <div :class="$style.description">
-          40 questions · 28 connaissances + 12 mises en situation · 45 min · seuil 80 %
+          40 questions · 28 connaissances + 12 mises en situation · 45 min ·
+          seuil 80 %
         </div>
       </div>
 
       <WhimcPatch accent="var(--c-bleu)">
         <div :class="$style.patchHeading">règles — mode super-hard</div>
-        <div v-for="([k, v], index) in RULES" :key="`rules-${index}`" :class="$style.rule">
+        <div
+          v-for="([k, v], index) in RULES"
+          :key="`rules-${index}`"
+          :class="$style.rule"
+        >
           <span :class="$style.ruleKey">{{ k }}</span>
           <span :class="$style.ruleVal">{{ v }}</span>
         </div>
@@ -27,7 +32,10 @@
           <button
             v-for="opt in SOURCE_OPTIONS"
             :key="opt.value"
-            :class="[$style.sourceBtn, datasetSource === opt.value && $style.sourceBtnActive]"
+            :class="[
+              $style.sourceBtn,
+              datasetSource === opt.value && $style.sourceBtnActive,
+            ]"
             @click="datasetSource = opt.value"
           >
             {{ datasetSource === opt.value ? "× " : "" }}{{ opt.label }}
@@ -53,7 +61,9 @@
             />
             {{ fileName || "choisir un fichier .json →" }}
           </label>
-          <span v-if="fileError" :class="$style.fileError">{{ fileError }}</span>
+          <span v-if="fileError" :class="$style.fileError">{{
+            fileError
+          }}</span>
         </div>
       </WhimcPatch>
 
@@ -63,7 +73,10 @@
           <button
             v-for="(theme, index) in THEMES"
             :key="`ec-theme-${index}`"
-            :class="[$style.themeBtn, index === themeSetIndex && $style.themeBtnActive]"
+            :class="[
+              $style.themeBtn,
+              index === themeSetIndex && $style.themeBtnActive,
+            ]"
             @click="themeSetIndex = index"
           >
             {{ themeSetIndex === index ? "× " : "" }}{{ theme }}
@@ -74,8 +87,17 @@
       <WhimcPatch>
         <div :class="$style.patchHeading">synchronisation des stats</div>
         <div :class="$style.syncStatus">
-          <span :class="$style.syncDot" :style="{ background: syncKey ? 'var(--c-vert)' : 'var(--c-linenD)' }" />
-          <span>{{ syncKey ? "clé active — stats synchro multi-appareils" : "hors-ligne — stats locales uniquement" }}</span>
+          <span
+            :class="$style.syncDot"
+            :style="{
+              background: syncKey ? 'var(--c-vert)' : 'var(--c-linenD)',
+            }"
+          />
+          <span>{{
+            syncKey
+              ? "clé active — stats synchro multi-appareils"
+              : "hors-ligne — stats locales uniquement"
+          }}</span>
         </div>
         <div :class="$style.syncInputRow">
           <input
@@ -87,14 +109,25 @@
           />
         </div>
         <div :class="$style.syncActions">
-          <button :class="$style.syncBtn" @click="generateSyncKey">générer</button>
-          <button :class="[$style.syncBtn, !syncKey && $style.syncBtnDisabled]" :disabled="!syncKey" @click="copySyncKey">
+          <button :class="$style.syncBtn" @click="generateSyncKey">
+            générer
+          </button>
+          <button
+            :class="[$style.syncBtn, !syncKey && $style.syncBtnDisabled]"
+            :disabled="!syncKey"
+            @click="copySyncKey"
+          >
             {{ copied ? "× copié !" : "copier" }}
           </button>
         </div>
       </WhimcPatch>
 
-      <WhimcBtn variant="primary" :class="$style.btnStart" :disabled="!canStart" @click="handleStart">
+      <WhimcBtn
+        variant="primary"
+        :class="$style.btnStart"
+        :disabled="!canStart"
+        @click="handleStart"
+      >
         commencer l'examen →
       </WhimcBtn>
 
@@ -132,7 +165,9 @@ const syncKey = ref("");
 const copied = ref(false);
 
 onMounted(() => {
-  const savedSource = localStorage.getItem(LS_SOURCE_KEY) as DatasetSource | null;
+  const savedSource = localStorage.getItem(
+    LS_SOURCE_KEY,
+  ) as DatasetSource | null;
   if (savedSource) datasetSource.value = savedSource;
   const savedUrl = localStorage.getItem(LS_URL_KEY);
   if (savedUrl) datasetUrl.value = savedUrl;
@@ -178,7 +213,9 @@ async function copySyncKey() {
   if (!syncKey.value) return;
   await navigator.clipboard.writeText(syncKey.value);
   copied.value = true;
-  setTimeout(() => { copied.value = false; }, 2000);
+  setTimeout(() => {
+    copied.value = false;
+  }, 2000);
 }
 
 function handleStart() {
@@ -448,9 +485,6 @@ function handleStart() {
   font-size: 0.7rem;
   color: var(--c-sepia);
   text-align: center;
-  position: fixed;
-  left: 50%;
-  bottom: 2.4rem;
-  transform: translateX(-50%);
+  margin-top: 2rem;
 }
 </style>
