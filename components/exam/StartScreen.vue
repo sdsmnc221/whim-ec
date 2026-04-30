@@ -5,50 +5,75 @@
     <section :class="$style.container">
       <div>
         <div :class="$style.subHeading">simulateur d'examen civique</div>
-
         <h1 :class="$style.heading">
           whim<span style="color: var(--c-rouge)">·</span>ec
         </h1>
-
         <div :class="$style.description">
-          40 questions · 28 connaissances + 12 mises en situation · 45 min ·
-          seuil 80 %
+          40 questions · 28 connaissances + 12 mises en situation · 45 min · seuil 80 %
         </div>
       </div>
 
       <WhimcPatch accent="var(--c-bleu)">
-        <div :class="$style.rulesHeading">règles — mode super-hard</div>
-        <div
-          v-for="([k, v], index) in RULES"
-          :key="`rules-super-hard-${index}`"
-          :class="$style.rule"
-        >
-          <span :class="$style.ruleSet1">{{ k }}</span>
-          <span :class="$style.ruleSet2">{{ v }}</span>
+        <div :class="$style.patchHeading">règles — mode super-hard</div>
+        <div v-for="([k, v], index) in RULES" :key="`rules-${index}`" :class="$style.rule">
+          <span :class="$style.ruleKey">{{ k }}</span>
+          <span :class="$style.ruleVal">{{ v }}</span>
         </div>
       </WhimcPatch>
 
       <WhimcPatch>
-        <div :class="$style.themesHeading">filtrer par thème</div>
+        <div :class="$style.patchHeading">source du dataset</div>
+        <div :class="$style.sourceOptions">
+          <button
+            v-for="opt in SOURCE_OPTIONS"
+            :key="opt.value"
+            :class="[$style.sourceBtn, datasetSource === opt.value && $style.sourceBtnActive]"
+            @click="datasetSource = opt.value"
+          >
+            {{ datasetSource === opt.value ? "× " : "" }}{{ opt.label }}
+          </button>
+        </div>
+
+        <div v-if="datasetSource === 'url'" :class="$style.urlRow">
+          <input
+            v-model="datasetUrl"
+            :class="$style.urlInput"
+            type="url"
+            placeholder="https://raw.githubusercontent.com/…/dataset.json"
+          />
+        </div>
+
+        <div v-if="datasetSource === 'file'" :class="$style.fileRow">
+          <label :class="$style.fileLabel">
+            <input
+              type="file"
+              accept=".json"
+              :class="$style.fileInputHidden"
+              @change="handleFileSelect"
+            />
+            {{ fileName || "choisir un fichier .json →" }}
+          </label>
+          <span v-if="fileError" :class="$style.fileError">{{ fileError }}</span>
+        </div>
+      </WhimcPatch>
+
+      <WhimcPatch>
+        <div :class="$style.patchHeading">filtrer par thème</div>
         <div :class="$style.themesContainer">
           <button
             v-for="(theme, index) in THEMES"
             :key="`ec-theme-${index}`"
-            :class="[
-              $style.themeSet,
-              index === themeSetIndex ? $style.themeSetActive : '',
-            ]"
-            @click="handleThemeSetClick(index)"
+            :class="[$style.themeBtn, index === themeSetIndex && $style.themeBtnActive]"
+            @click="themeSetIndex = index"
           >
-            {{ themeSetIndex === index ? "× " : "" }}
-            {{ theme }}
+            {{ themeSetIndex === index ? "× " : "" }}{{ theme }}
           </button>
         </div>
       </WhimcPatch>
 
-      <WhimcBtn variant="primary" :class="$style.btnStart" @click="handleStart"
-        >commencer l'examen →</WhimcBtn
-      >
+      <WhimcBtn variant="primary" :class="$style.btnStart" :disabled="!canStart" @click="handleStart">
+        commencer l'examen →
+      </WhimcBtn>
 
       <footer :class="$style.footer">× liberté × égalité × fraternité ×</footer>
     </section>
@@ -56,24 +81,74 @@
 </template>
 
 <script setup lang="ts">
-import type { Ref } from "vue";
-import { ref } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { THEMES, RULES } from "../../utils/constants";
-
 import CrossStitch from "../ui/CrossStitch.vue";
 import WhimcPatch from "../ui/WhimcPatch.vue";
 import WhimcBtn from "../ui/WhimcBtn.vue";
 
-const themeSetIndex: Ref<number> = ref(0);
+type DatasetSource = "bundled" | "url" | "file";
 
-const handleThemeSetClick = (index: number) => {
-  themeSetIndex.value = index;
-};
+const SOURCE_OPTIONS: { value: DatasetSource; label: string }[] = [
+  { value: "bundled", label: "échantillon intégré" },
+  { value: "url", label: "URL" },
+  { value: "file", label: "fichier" },
+];
 
-const handleStart = () => {
+const LS_SOURCE_KEY = "whimec-dataset-source";
+const LS_URL_KEY = "whimec-dataset-url";
+const SS_CONTENT_KEY = "whimec-dataset-content";
+
+const themeSetIndex = ref(0);
+const datasetSource = ref<DatasetSource>("bundled");
+const datasetUrl = ref("");
+const fileName = ref("");
+const fileError = ref("");
+
+onMounted(() => {
+  const savedSource = localStorage.getItem(LS_SOURCE_KEY) as DatasetSource | null;
+  if (savedSource) datasetSource.value = savedSource;
+  const savedUrl = localStorage.getItem(LS_URL_KEY);
+  if (savedUrl) datasetUrl.value = savedUrl;
+});
+
+watch(datasetSource, (v) => localStorage.setItem(LS_SOURCE_KEY, v));
+watch(datasetUrl, (v) => localStorage.setItem(LS_URL_KEY, v));
+
+function handleFileSelect(e: Event) {
+  fileError.value = "";
+  fileName.value = "";
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const raw = ev.target?.result as string;
+      JSON.parse(raw);
+      sessionStorage.setItem(SS_CONTENT_KEY, raw);
+      fileName.value = file.name;
+    } catch {
+      fileError.value = "fichier JSON invalide";
+    }
+  };
+  reader.readAsText(file);
+}
+
+const canStart = computed(() => {
+  if (datasetSource.value === "url") return datasetUrl.value.trim().length > 0;
+  if (datasetSource.value === "file") return fileName.value.length > 0;
+  return true;
+});
+
+function handleStart() {
   sessionStorage.setItem("examReady", "1");
+  sessionStorage.setItem("datasetSource", datasetSource.value);
+  if (datasetSource.value === "url") {
+    sessionStorage.setItem("datasetUrl", datasetUrl.value.trim());
+  }
   navigateTo({ path: "/exam", state: { theme: themeSetIndex.value } });
-};
+}
 </script>
 
 <style lang="scss" module>
@@ -84,7 +159,6 @@ const handleStart = () => {
   padding: 2rem 1.25rem 3rem;
   color: var(--c-encre);
   font-family: var(--f-mono);
-
   @include linen-bg;
 }
 
@@ -118,18 +192,13 @@ const handleStart = () => {
   color: var(--c-sepia);
 }
 
-.rulesHeading,
-.themesHeading {
+.patchHeading {
   font-family: var(--f-mono);
   font-size: 0.55rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--c-sepia);
   margin-bottom: 0.75rem;
-}
-
-.themesHeading {
-  margin-bottom: 0.65rem;
 }
 
 .rule {
@@ -140,13 +209,13 @@ const handleStart = () => {
   padding: 0.32rem 0;
 }
 
-.ruleSet1 {
+.ruleKey {
   font-family: var(--f-display);
   font-size: 0.92rem;
   color: var(--c-bleu);
 }
 
-.ruleSet2 {
+.ruleVal {
   font-family: var(--f-body);
   font-style: italic;
   font-size: 0.72rem;
@@ -155,13 +224,93 @@ const handleStart = () => {
   max-width: 55%;
 }
 
+.sourceOptions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.sourceBtn {
+  background: transparent;
+  border: 1px dashed var(--c-linenD);
+  color: var(--c-encre);
+  font-family: var(--f-sans);
+  font-size: 0.78rem;
+  padding: 0.38rem 0.65rem;
+  cursor: pointer;
+}
+
+.sourceBtnActive {
+  background: var(--c-bleu-pale);
+  border-color: var(--c-bleu);
+  color: var(--c-bleu);
+}
+
+.urlRow {
+  margin-top: 0.65rem;
+}
+
+.urlInput {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--c-linen);
+  border: 1px dashed var(--c-sepia);
+  color: var(--c-encre);
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  padding: 0.4rem 0.6rem;
+  outline: none;
+
+  &::placeholder {
+    color: var(--c-sepia);
+    opacity: 0.6;
+  }
+
+  &:focus {
+    border-color: var(--c-bleu);
+  }
+}
+
+.fileRow {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fileLabel {
+  display: inline-block;
+  background: var(--c-linen);
+  border: 1px dashed var(--c-sepia);
+  color: var(--c-encre);
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  padding: 0.4rem 0.65rem;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--c-bleu);
+    color: var(--c-bleu);
+  }
+}
+
+.fileInputHidden {
+  display: none;
+}
+
+.fileError {
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  color: var(--c-rouge);
+}
+
 .themesContainer {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
-.themeSet {
+.themeBtn {
   background: transparent;
   border: 1px dashed var(--c-linenD);
   color: var(--c-encre);
@@ -171,9 +320,10 @@ const handleStart = () => {
   padding: 0.38rem 0.65rem;
   cursor: pointer;
 }
-.themeSetActive {
+
+.themeBtnActive {
   background: var(--c-bleu-pale);
-  border: 1px dashed var(--c-bleu);
+  border-color: var(--c-bleu);
   color: var(--c-bleu);
 }
 
