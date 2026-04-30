@@ -89,7 +89,7 @@ defineOptions({
   border-style: dashed;
   &.primary {
     background: var(--c-bleu);
-    border-color: var(--c-bleuPale);
+    border-color: var(--c-bleu-pale);
     color: var(--c-craie);
   }
   &.danger {

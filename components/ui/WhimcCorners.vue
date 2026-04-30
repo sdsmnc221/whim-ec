@@ -8,10 +8,10 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    color?: string;
+    accent?: string;
   }>(),
   {
-    color: "var(--c-sepia)",
+    accent: "var(--c-sepia)",
   },
 );
 </script>
@@ -24,6 +24,6 @@ withDefaults(
   line-height: 1;
   user-select: none;
   font-style: normal;
-  color: v-bind(color);
+  color: v-bind(accent);
 }
 </style>

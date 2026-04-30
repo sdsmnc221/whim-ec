@@ -3,8 +3,7 @@
 </template>
 
 <script setup lang="ts">
-const { query } = useRoute();
-console.log("Selected theme set index:", query.theme);
+console.log("Selected theme set index:", history.state.theme);
 </script>
 
 <style module lang="scss">

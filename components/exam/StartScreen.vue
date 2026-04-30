@@ -72,7 +72,7 @@ const handleThemeSetClick = (index: number) => {
 
 const handleStart = () => {
   sessionStorage.setItem("examReady", "1");
-  navigateTo({ path: "/exam", query: { theme: themeSetIndex.value } });
+  navigateTo({ path: "/exam", state: { theme: themeSetIndex.value } });
 };
 </script>
 
