@@ -71,6 +71,29 @@
         </div>
       </WhimcPatch>
 
+      <WhimcPatch>
+        <div :class="$style.patchHeading">synchronisation des stats</div>
+        <div :class="$style.syncStatus">
+          <span :class="$style.syncDot" :style="{ background: syncKey ? 'var(--c-vert)' : 'var(--c-linenD)' }" />
+          <span>{{ syncKey ? "clé active — stats synchro multi-appareils" : "hors-ligne — stats locales uniquement" }}</span>
+        </div>
+        <div :class="$style.syncInputRow">
+          <input
+            v-model="syncKey"
+            :class="$style.syncInput"
+            type="password"
+            placeholder="coller votre clé de sync →"
+            autocomplete="off"
+          />
+        </div>
+        <div :class="$style.syncActions">
+          <button :class="$style.syncBtn" @click="generateSyncKey">générer</button>
+          <button :class="[$style.syncBtn, !syncKey && $style.syncBtnDisabled]" :disabled="!syncKey" @click="copySyncKey">
+            {{ copied ? "× copié !" : "copier" }}
+          </button>
+        </div>
+      </WhimcPatch>
+
       <WhimcBtn variant="primary" :class="$style.btnStart" :disabled="!canStart" @click="handleStart">
         commencer l'examen →
       </WhimcBtn>
@@ -97,6 +120,7 @@ const SOURCE_OPTIONS: { value: DatasetSource; label: string }[] = [
 
 const LS_SOURCE_KEY = "whimec-dataset-source";
 const LS_URL_KEY = "whimec-dataset-url";
+const LS_SYNC_KEY = "whimec-sync-key";
 const SS_CONTENT_KEY = "whimec-dataset-content";
 
 const themeSetIndex = ref(0);
@@ -104,16 +128,21 @@ const datasetSource = ref<DatasetSource>("bundled");
 const datasetUrl = ref("");
 const fileName = ref("");
 const fileError = ref("");
+const syncKey = ref("");
+const copied = ref(false);
 
 onMounted(() => {
   const savedSource = localStorage.getItem(LS_SOURCE_KEY) as DatasetSource | null;
   if (savedSource) datasetSource.value = savedSource;
   const savedUrl = localStorage.getItem(LS_URL_KEY);
   if (savedUrl) datasetUrl.value = savedUrl;
+  const savedSyncKey = localStorage.getItem(LS_SYNC_KEY);
+  if (savedSyncKey) syncKey.value = savedSyncKey;
 });
 
 watch(datasetSource, (v) => localStorage.setItem(LS_SOURCE_KEY, v));
 watch(datasetUrl, (v) => localStorage.setItem(LS_URL_KEY, v));
+watch(syncKey, (v) => localStorage.setItem(LS_SYNC_KEY, v));
 
 function handleFileSelect(e: Event) {
   fileError.value = "";
@@ -140,6 +169,17 @@ const canStart = computed(() => {
   if (datasetSource.value === "file") return fileName.value.length > 0;
   return true;
 });
+
+function generateSyncKey() {
+  syncKey.value = crypto.randomUUID();
+}
+
+async function copySyncKey() {
+  if (!syncKey.value) return;
+  await navigator.clipboard.writeText(syncKey.value);
+  copied.value = true;
+  setTimeout(() => { copied.value = false; }, 2000);
+}
 
 function handleStart() {
   sessionStorage.setItem("examReady", "1");
@@ -325,6 +365,75 @@ function handleStart() {
   background: var(--c-bleu-pale);
   border-color: var(--c-bleu);
   color: var(--c-bleu);
+}
+
+.syncStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--f-body);
+  font-style: italic;
+  font-size: 0.72rem;
+  color: var(--c-sepia);
+  margin-bottom: 0.65rem;
+}
+
+.syncDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.syncInputRow {
+  margin-bottom: 0.5rem;
+}
+
+.syncInput {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--c-linen);
+  border: 1px dashed var(--c-sepia);
+  color: var(--c-encre);
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  padding: 0.4rem 0.6rem;
+  outline: none;
+
+  &::placeholder {
+    color: var(--c-sepia);
+    opacity: 0.6;
+  }
+
+  &:focus {
+    border-color: var(--c-vert);
+  }
+}
+
+.syncActions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.syncBtn {
+  background: transparent;
+  border: 1px dashed var(--c-linenD);
+  color: var(--c-encre);
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--c-vert);
+    color: var(--c-vert);
+  }
+}
+
+.syncBtnDisabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .btnStart {

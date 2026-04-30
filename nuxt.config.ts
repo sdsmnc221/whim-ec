@@ -1,3 +1,5 @@
+require("dotenv").config({ path: ".env.local" });
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -5,7 +7,7 @@ export default defineNuxtConfig({
   alias: {
     "~": ".",
   },
-  modules: ["@nuxtjs/google-fonts"],
+  modules: ["@nuxtjs/google-fonts", "convex-nuxt"],
   googleFonts: {
     // --f-display: 'Almendra', serif          → titles, theme names, score numbers
     // --f-body:    'IM Fell DW Pica', serif   → question text, passages, explanations
@@ -31,4 +33,7 @@ export default defineNuxtConfig({
     },
   },
   css: ["~/styles/_tokens.scss"],
+  convex: {
+    url: process.env.CONVEX_URL,
+  },
 });

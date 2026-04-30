@@ -8,7 +8,11 @@
           Révision {{ reviewIdx + 1 }}/{{ reviewQ.length }} —
           {{ answers[current] === null ? "sans réponse" : "confiance faible" }}
         </span>
-        <WhimcBtn variant="danger" :class="$style.finaliseBtn" @click="doFinalise">
+        <WhimcBtn
+          variant="danger"
+          :class="$style.finaliseBtn"
+          @click="doFinalise"
+        >
           Finaliser →
         </WhimcBtn>
       </div>
@@ -25,7 +29,9 @@
 
     <!-- submit prompt (all answered, exam phase) -->
     <div v-if="showPrompt && phase === 'exam'" :class="$style.submitPrompt">
-      <span :class="$style.promptText">Toutes les questions sont répondues.</span>
+      <span :class="$style.promptText"
+        >Toutes les questions sont répondues.</span
+      >
       <div :class="$style.promptActions">
         <WhimcBtn
           v-if="lowConfCount > 0"
@@ -35,7 +41,11 @@
         >
           Réviser ({{ lowConfCount }}) →
         </WhimcBtn>
-        <WhimcBtn variant="danger" :class="$style.promptBtn" @click="doFinalise">
+        <WhimcBtn
+          variant="danger"
+          :class="$style.promptBtn"
+          @click="doFinalise"
+        >
           Soumettre [S]
         </WhimcBtn>
       </div>
@@ -58,7 +68,11 @@
     <!-- bottom nav -->
     <div :class="$style.bottomNav">
       <template v-if="phase === 'review'">
-        <WhimcBtn variant="ghost" :disabled="reviewIdx === 0" @click="reviewNav(-1)">
+        <WhimcBtn
+          variant="ghost"
+          :disabled="reviewIdx === 0"
+          @click="reviewNav(-1)"
+        >
           ← précédent
         </WhimcBtn>
         <WhimcBtn
@@ -111,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import type { BuiltQuestion } from "../../composables/useExamEngine";
 import { EXAM_SECS } from "../../composables/useExamEngine";
 import TimerStrip from "./TimerStrip.vue";
@@ -124,7 +138,14 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  finalise: [result: { answers: (number | null)[]; flags: (string | null)[]; timeUsed: number }];
+  finalise: [
+    result: {
+      answers: (number | null)[];
+      flags: (string | null)[];
+      timeUsed: number;
+      timesMs: number[];
+    },
+  ];
 }>();
 
 const total = computed(() => props.questions.length);
@@ -137,6 +158,9 @@ const phase = ref<"exam" | "review">("exam");
 const reviewQ = ref<number[]>([]);
 const reviewIdx = ref(0);
 const showPrompt = ref(false);
+
+const questionStartedAt = ref<number>(Date.now());
+const timesMs = ref<number[]>(Array(total.value).fill(0));
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
@@ -159,9 +183,15 @@ function clearTimer() {
   }
 }
 
-const answeredCount = computed(() => answers.value.filter((a) => a !== null).length);
-const lowConfCount = computed(() => flags.value.filter((f) => f === "low-confidence").length);
-const unansweredCount = computed(() => answers.value.filter((a) => a === null).length);
+const answeredCount = computed(
+  () => answers.value.filter((a) => a !== null).length,
+);
+const lowConfCount = computed(
+  () => flags.value.filter((f) => f === "low-confidence").length,
+);
+const unansweredCount = computed(
+  () => answers.value.filter((a) => a === null).length,
+);
 
 function handleAnswer(i: number) {
   if (phase.value !== "exam" && phase.value !== "review") return;
@@ -169,7 +199,9 @@ function handleAnswer(i: number) {
 
   if (phase.value === "exam") {
     setTimeout(() => {
-      const next = answers.value.findIndex((a, idx) => idx > current.value && a === null);
+      const next = answers.value.findIndex(
+        (a, idx) => idx > current.value && a === null,
+      );
       if (next !== -1) {
         current.value = next;
       } else {
@@ -207,19 +239,29 @@ function triggerSubmit() {
 }
 
 function doFinalise() {
+  timesMs.value[current.value] += Date.now() - questionStartedAt.value;
   clearTimer();
   emit("finalise", {
     answers: answers.value,
     flags: flags.value,
     timeUsed: EXAM_SECS - timeLeft.value,
+    timesMs: timesMs.value,
   });
 }
 
 function reviewNav(dir: -1 | 1) {
-  const next = Math.max(0, Math.min(reviewQ.value.length - 1, reviewIdx.value + dir));
+  const next = Math.max(
+    0,
+    Math.min(reviewQ.value.length - 1, reviewIdx.value + dir),
+  );
   reviewIdx.value = next;
   current.value = reviewQ.value[next];
 }
+
+watch(current, (_new, old) => {
+  timesMs.value[old] += Date.now() - questionStartedAt.value;
+  questionStartedAt.value = Date.now();
+});
 </script>
 
 <style lang="scss" module>

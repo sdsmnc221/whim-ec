@@ -22,6 +22,7 @@
 import { ref, onMounted } from "vue";
 import type { BuiltQuestion } from "../../composables/useExamEngine";
 import { drawQuestions } from "../../composables/useExamEngine";
+import { useStats } from "../../composables/useStats";
 import { THEMES } from "../../utils/constants";
 import ExamScreen from "../../components/exam/ExamScreen.vue";
 import ResultsScreen from "../../components/exam/ResultsScreen.vue";
@@ -43,6 +44,7 @@ const result = ref<{
   answers: (number | null)[];
   flags: (string | null)[];
   timeUsed: number;
+  timesMs: number[];
 } | null>(null);
 const loadError = ref("");
 
@@ -83,13 +85,16 @@ async function loadDataset() {
   return import("../../assets/data/dataset_sample.json").then((m) => m.default);
 }
 
+const { recordSession } = useStats();
 function handleFinalise(res: {
   answers: (number | null)[];
   flags: (string | null)[];
   timeUsed: number;
+  timesMs: number[];
 }) {
   result.value = res;
   screen.value = "results";
+  recordSession(questions.value, res.answers, res.timesMs);
 }
 
 function handleRestart() {
