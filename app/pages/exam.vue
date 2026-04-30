@@ -10,7 +10,10 @@
     :questions="questions"
     @finalise="handleFinalise"
   />
-  <div v-else-if="loadError" style="padding: 2rem; font-family: var(--f-mono); color: var(--c-rouge)">
+  <div
+    v-else-if="loadError"
+    style="padding: 2rem; font-family: var(--f-mono); color: var(--c-rouge)"
+  >
     {{ loadError }}
   </div>
 </template>
@@ -36,7 +39,11 @@ definePageMeta({
 
 const screen = ref<"exam" | "results">("exam");
 const questions = ref<BuiltQuestion[]>([]);
-const result = ref<{ answers: (number | null)[]; flags: (string | null)[]; timeUsed: number } | null>(null);
+const result = ref<{
+  answers: (number | null)[];
+  flags: (string | null)[];
+  timeUsed: number;
+} | null>(null);
 const loadError = ref("");
 
 onMounted(async () => {
@@ -50,7 +57,8 @@ onMounted(async () => {
     const dataset = await loadDataset();
     questions.value = drawQuestions(dataset, theme, seed);
   } catch (e) {
-    loadError.value = e instanceof Error ? e.message : "Erreur de chargement du dataset.";
+    loadError.value =
+      e instanceof Error ? e.message : "Erreur de chargement du dataset.";
   }
 });
 
@@ -61,7 +69,8 @@ async function loadDataset() {
     const url = sessionStorage.getItem("datasetUrl");
     if (!url) throw new Error("URL manquante.");
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`Impossible de charger le dataset (${res.status}).`);
+    if (!res.ok)
+      throw new Error(`Impossible de charger le dataset (${res.status}).`);
     return res.json();
   }
 
@@ -71,10 +80,14 @@ async function loadDataset() {
     return JSON.parse(content);
   }
 
-  return import("../../assets/data/unified_dataset_complete.json").then((m) => m.default);
+  return import("../../assets/data/dataset_sample.json").then((m) => m.default);
 }
 
-function handleFinalise(res: { answers: (number | null)[]; flags: (string | null)[]; timeUsed: number }) {
+function handleFinalise(res: {
+  answers: (number | null)[];
+  flags: (string | null)[];
+  timeUsed: number;
+}) {
   result.value = res;
   screen.value = "results";
 }
