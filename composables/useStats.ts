@@ -46,24 +46,27 @@ export const useStats = () => {
       timeMs: timesMs[i] ?? 0,
     }));
 
-    for (const r of results) {
-      const prev = stats.value[r.questionId] ?? {
-        views: 0,
-        correct: 0,
-        attempts: 0,
-        totalTimeMs: 0,
-      };
-      stats.value[r.questionId] = {
-        views: prev.views + 1,
-        correct: prev.correct + (r.correct ? 1 : 0),
-        attempts: prev.attempts + 1,
-        totalTimeMs: prev.totalTimeMs + r.timeMs,
-      };
-    }
-    localStorage.setItem(LS_KEY, JSON.stringify(stats.value));
-
     if (syncKey.value) {
+      // Convex is the single counter — push delta, then pull authoritative state.
+      // Do NOT also increment locally, otherwise both sides accumulate independently.
       await pushSession({ syncKey: syncKey.value, results });
+      await pullFromConvex();
+    } else {
+      for (const r of results) {
+        const prev = stats.value[r.questionId] ?? {
+          views: 0,
+          correct: 0,
+          attempts: 0,
+          totalTimeMs: 0,
+        };
+        stats.value[r.questionId] = {
+          views: prev.views + 1,
+          correct: prev.correct + (r.correct ? 1 : 0),
+          attempts: prev.attempts + 1,
+          totalTimeMs: prev.totalTimeMs + r.timeMs,
+        };
+      }
+      localStorage.setItem(LS_KEY, JSON.stringify(stats.value));
     }
   }
 
