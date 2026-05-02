@@ -62,7 +62,6 @@
       $attrs.class,
     ]"
     :disabled="disabled"
-    @click="$emit('click')"
   >
     <slot />
   </button>

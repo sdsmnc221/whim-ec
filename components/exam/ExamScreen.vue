@@ -84,18 +84,10 @@
         </WhimcBtn>
       </template>
       <template v-else>
-        <WhimcBtn
-          variant="ghost"
-          :disabled="current === 0"
-          @click="navPrev"
-        >
+        <WhimcBtn variant="ghost" :disabled="current === 0" @click="navPrev">
           ← précédent
         </WhimcBtn>
-        <WhimcBtn
-          v-if="current < total - 1"
-          variant="outline"
-          @click="navNext"
-        >
+        <WhimcBtn v-if="current < total - 1" variant="outline" @click="navNext">
           suivant →
         </WhimcBtn>
         <WhimcBtn v-else variant="danger" @click="triggerSubmit">
@@ -165,7 +157,7 @@ const timesMs = ref<number[]>(Array(total.value).fill(0));
 let timer: ReturnType<typeof setInterval> | null = null;
 let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
 
-function cancelAutoAdvance() {
+async function cancelAutoAdvance() {
   if (autoAdvanceTimer !== null) {
     clearTimeout(autoAdvanceTimer);
     autoAdvanceTimer = null;
@@ -201,12 +193,12 @@ const unansweredCount = computed(
   () => answers.value.filter((a) => a === null).length,
 );
 
-function handleAnswer(i: number) {
+async function handleAnswer(i: number) {
   if (phase.value !== "exam" && phase.value !== "review") return;
   answers.value[current.value] = i;
 
   if (phase.value === "exam") {
-    cancelAutoAdvance();
+    await cancelAutoAdvance();
     autoAdvanceTimer = setTimeout(() => {
       autoAdvanceTimer = null;
       const next = answers.value.findIndex(
@@ -259,22 +251,24 @@ function doFinalise() {
   });
 }
 
-function navTo(n: number) {
-  cancelAutoAdvance();
+async function navTo(n: number) {
+  await cancelAutoAdvance();
   current.value = n;
 }
 
-function navPrev() {
-  cancelAutoAdvance();
+async function navPrev() {
+  await cancelAutoAdvance();
+
   current.value = Math.max(0, current.value - 1);
 }
 
-function navNext() {
-  cancelAutoAdvance();
+async function navNext() {
+  await cancelAutoAdvance();
   current.value = Math.min(total.value - 1, current.value + 1);
 }
 
-function reviewNav(dir: -1 | 1) {
+async function reviewNav(dir: -1 | 1) {
+  await cancelAutoAdvance();
   const next = Math.max(
     0,
     Math.min(reviewQ.value.length - 1, reviewIdx.value + dir),
