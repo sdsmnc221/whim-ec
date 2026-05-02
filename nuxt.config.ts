@@ -7,7 +7,7 @@ export default defineNuxtConfig({
   alias: {
     "~": ".",
   },
-  modules: ["@nuxtjs/google-fonts", "convex-nuxt"],
+  modules: ["@nuxtjs/google-fonts", "convex-nuxt", "@vite-pwa/nuxt"],
   googleFonts: {
     // --f-display: 'Almendra', serif          → titles, theme names, score numbers
     // --f-body:    'IM Fell DW Pica', serif   → question text, passages, explanations
@@ -38,7 +38,54 @@ export default defineNuxtConfig({
     },
   },
   css: ["~/styles/_tokens.scss"],
+  vite: {
+    optimizeDeps: {
+      include: ["convex-vue", "convex/server"],
+    },
+  },
   convex: {
     url: process.env.CONVEX_URL,
+  },
+  pwa: {
+    registerType: "autoUpdate",
+    manifest: {
+      name: "whim·ec",
+      short_name: "whim·ec",
+      description: "Simulateur d'examen civique pour NAT/CSP",
+      theme_color: "#e8e4d9",
+      background_color: "#e8e4d9",
+      display: "standalone",
+      orientation: "portrait",
+      lang: "fr",
+      icons: [
+        {
+          src: "pwa-192x192.png",
+          sizes: "192x192",
+          type: "image/png",
+        },
+        {
+          src: "pwa-512x512.png",
+          sizes: "512x512",
+          type: "image/png",
+        },
+        {
+          src: "pwa-512x512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any maskable",
+        },
+      ],
+    },
+    workbox: {
+      navigateFallback: "/",
+      globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+    },
+    client: {
+      installPrompt: true,
+      periodicSyncForUpdates: 3600,
+    },
+    devOptions: {
+      enabled: false,
+    },
   },
 });

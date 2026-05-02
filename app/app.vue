@@ -1,4 +1,5 @@
 <template>
+  <NuxtPwaManifest />
   <main id="app">
     <NuxtPage />
   </main>
