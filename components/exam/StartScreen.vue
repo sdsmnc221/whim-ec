@@ -9,8 +9,7 @@
           whim<span style="color: var(--c-rouge)">·</span>ec
         </h1>
         <div :class="$style.description">
-          40 questions · 28 connaissances + 12 mises en situation · 45 min ·
-          seuil 80 %
+          40 questions · 45 min · seuil 80 %
         </div>
       </div>
 
@@ -78,16 +77,19 @@
             ]"
             @click="toggleMaster"
           >
-            {{ masterState ? masterState + ' ' : '' }}Tous les thèmes
+            {{ masterState ? masterState + " " : "" }}Tous les thèmes
           </button>
           <div :class="$style.subThemeGroup">
             <button
               v-for="theme in THEMES_SUB"
               :key="theme"
-              :class="[$style.themeBtn, selectedThemes.includes(theme) && $style.themeBtnActive]"
+              :class="[
+                $style.themeBtn,
+                selectedThemes.includes(theme) && $style.themeBtnActive,
+              ]"
               @click="toggleTheme(theme)"
             >
-              {{ selectedThemes.includes(theme) ? '× ' : '' }}{{ theme }}
+              {{ selectedThemes.includes(theme) ? "× " : "" }}{{ theme }}
             </button>
           </div>
         </div>
@@ -197,10 +199,10 @@ const SS_CONTENT_KEY = "whimec-dataset-content";
 const THEMES_SUB = THEMES.slice(1);
 const selectedThemes = ref<string[]>([...THEMES_SUB]);
 
-const masterState = computed<'×' | '~' | ''>(() => {
-  if (selectedThemes.value.length === THEMES_SUB.length) return '×';
-  if (selectedThemes.value.length === 0) return '';
-  return '~';
+const masterState = computed<"×" | "~" | "">(() => {
+  if (selectedThemes.value.length === THEMES_SUB.length) return "×";
+  if (selectedThemes.value.length === 0) return "";
+  return "~";
 });
 
 function toggleMaster() {
@@ -271,7 +273,9 @@ onMounted(() => {
 
 watch(datasetSource, (v) => localStorage.setItem(LS_SOURCE_KEY, v));
 watch(datasetUrl, (v) => localStorage.setItem(LS_URL_KEY, v));
-watch(selectedThemes, (v) => localStorage.setItem(LS_THEMES_KEY, JSON.stringify(v)));
+watch(selectedThemes, (v) =>
+  localStorage.setItem(LS_THEMES_KEY, JSON.stringify(v)),
+);
 watch(syncKey, (v) => {
   localStorage.setItem(LS_SYNC_KEY, v);
   if (v) setSyncKey(v);

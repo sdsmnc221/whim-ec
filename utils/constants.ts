@@ -12,8 +12,7 @@ const RULES = [
   ["45 minutes", "durée maximale"],
   ["32 / 40 (80 %)", "seuil de réussite"],
   ["Réponses masquées", "aucune correction pendant l'examen"],
-  ["[Tab] Faible confiance", "orange · à réviser avant soumission"],
-  ["[S] Soumettre", "boucle : faible confiance + sans réponse"],
+  ["[Faible Confiance] Toggle", "orange · à réviser avant soumission"],
 ];
 
 const THEME_SHORT: Record<string, string> = {
