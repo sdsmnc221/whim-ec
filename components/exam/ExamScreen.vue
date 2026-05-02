@@ -24,7 +24,7 @@
       :answers="answers"
       :flags="flags"
       :current="current"
-      @go="current = $event"
+      @go="navTo($event)"
     />
 
     <!-- submit prompt (all answered, exam phase) -->
@@ -87,14 +87,14 @@
         <WhimcBtn
           variant="ghost"
           :disabled="current === 0"
-          @click="current = Math.max(0, current - 1)"
+          @click="navPrev"
         >
           ← précédent
         </WhimcBtn>
         <WhimcBtn
           v-if="current < total - 1"
           variant="outline"
-          @click="current = Math.min(total - 1, current + 1)"
+          @click="navNext"
         >
           suivant →
         </WhimcBtn>
@@ -163,6 +163,14 @@ const questionStartedAt = ref<number>(Date.now());
 const timesMs = ref<number[]>(Array(total.value).fill(0));
 
 let timer: ReturnType<typeof setInterval> | null = null;
+let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelAutoAdvance() {
+  if (autoAdvanceTimer !== null) {
+    clearTimeout(autoAdvanceTimer);
+    autoAdvanceTimer = null;
+  }
+}
 
 onMounted(() => {
   timer = setInterval(() => {
@@ -198,7 +206,9 @@ function handleAnswer(i: number) {
   answers.value[current.value] = i;
 
   if (phase.value === "exam") {
-    setTimeout(() => {
+    cancelAutoAdvance();
+    autoAdvanceTimer = setTimeout(() => {
+      autoAdvanceTimer = null;
       const next = answers.value.findIndex(
         (a, idx) => idx > current.value && a === null,
       );
@@ -247,6 +257,21 @@ function doFinalise() {
     timeUsed: EXAM_SECS - timeLeft.value,
     timesMs: timesMs.value,
   });
+}
+
+function navTo(n: number) {
+  cancelAutoAdvance();
+  current.value = n;
+}
+
+function navPrev() {
+  cancelAutoAdvance();
+  current.value = Math.max(0, current.value - 1);
+}
+
+function navNext() {
+  cancelAutoAdvance();
+  current.value = Math.min(total.value - 1, current.value + 1);
 }
 
 function reviewNav(dir: -1 | 1) {
