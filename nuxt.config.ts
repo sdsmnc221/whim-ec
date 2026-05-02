@@ -32,6 +32,11 @@ export default defineNuxtConfig({
       },
     },
   },
+  app: {
+    head: {
+      link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
+    },
+  },
   css: ["~/styles/_tokens.scss"],
   convex: {
     url: process.env.CONVEX_URL,

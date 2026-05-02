@@ -49,11 +49,11 @@ const buildQ = (raw: RawQuestion, rng: () => number): BuiltQuestion => {
 
 export const drawQuestions = (
   dataset: RawQuestion[],
-  theme: string,
+  themes: string[],
   seed: number,
 ): BuiltQuestion[] => {
   const filter = (q: RawQuestion) =>
-    !theme || theme === "Tous les thèmes" ? true : q.theme === theme;
+    themes.length === 0 || themes.includes(q.theme);
 
   const conn = shuffle(
     dataset.filter((q) => q.type === "connaissance" && filter(q)),

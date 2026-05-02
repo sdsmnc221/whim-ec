@@ -23,7 +23,6 @@ import { ref, onMounted } from "vue";
 import type { BuiltQuestion } from "../../composables/useExamEngine";
 import { drawQuestions } from "../../composables/useExamEngine";
 import { useStats } from "../../composables/useStats";
-import { THEMES } from "../../utils/constants";
 import ExamScreen from "../../components/exam/ExamScreen.vue";
 import ResultsScreen from "../../components/exam/ResultsScreen.vue";
 
@@ -51,13 +50,14 @@ const loadError = ref("");
 onMounted(async () => {
   sessionStorage.removeItem("examReady");
 
-  const themeIndex: number = history.state.theme ?? 0;
-  const theme = THEMES[themeIndex] ?? "Tous les thèmes";
+  const themesRaw = sessionStorage.getItem("examThemes");
+  sessionStorage.removeItem("examThemes");
+  const themes: string[] = themesRaw ? JSON.parse(themesRaw) : [];
   const seed = Date.now() % 999983;
 
   try {
     const dataset = await loadDataset();
-    questions.value = drawQuestions(dataset, theme, seed);
+    questions.value = drawQuestions(dataset, themes, seed);
   } catch (e) {
     loadError.value =
       e instanceof Error ? e.message : "Erreur de chargement du dataset.";

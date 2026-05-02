@@ -71,16 +71,25 @@
         <div :class="$style.patchHeading">filtrer par thème</div>
         <div :class="$style.themesContainer">
           <button
-            v-for="(theme, index) in THEMES"
-            :key="`ec-theme-${index}`"
             :class="[
               $style.themeBtn,
-              index === themeSetIndex && $style.themeBtnActive,
+              masterState === '×' && $style.themeBtnActive,
+              masterState === '~' && $style.themeBtnPartial,
             ]"
-            @click="themeSetIndex = index"
+            @click="toggleMaster"
           >
-            {{ themeSetIndex === index ? "× " : "" }}{{ theme }}
+            {{ masterState ? masterState + ' ' : '' }}Tous les thèmes
           </button>
+          <div :class="$style.subThemeGroup">
+            <button
+              v-for="theme in THEMES_SUB"
+              :key="theme"
+              :class="[$style.themeBtn, selectedThemes.includes(theme) && $style.themeBtnActive]"
+              @click="toggleTheme(theme)"
+            >
+              {{ selectedThemes.includes(theme) ? '× ' : '' }}{{ theme }}
+            </button>
+          </div>
         </div>
       </WhimcPatch>
 
@@ -182,9 +191,28 @@ const SOURCE_OPTIONS: { value: DatasetSource; label: string }[] = [
 const LS_SOURCE_KEY = "whimec-dataset-source";
 const LS_URL_KEY = "whimec-dataset-url";
 const LS_SYNC_KEY = "whimec-sync-key";
+const LS_THEMES_KEY = "whimec-themes";
 const SS_CONTENT_KEY = "whimec-dataset-content";
 
-const themeSetIndex = ref(0);
+const THEMES_SUB = THEMES.slice(1);
+const selectedThemes = ref<string[]>([...THEMES_SUB]);
+
+const masterState = computed<'×' | '~' | ''>(() => {
+  if (selectedThemes.value.length === THEMES_SUB.length) return '×';
+  if (selectedThemes.value.length === 0) return '';
+  return '~';
+});
+
+function toggleMaster() {
+  selectedThemes.value =
+    selectedThemes.value.length === THEMES_SUB.length ? [] : [...THEMES_SUB];
+}
+
+function toggleTheme(theme: string) {
+  selectedThemes.value = selectedThemes.value.includes(theme)
+    ? selectedThemes.value.filter((t) => t !== theme)
+    : [...selectedThemes.value, theme];
+}
 const datasetSource = ref<DatasetSource>("bundled");
 const datasetUrl = ref("");
 const fileName = ref("");
@@ -231,11 +259,19 @@ onMounted(() => {
   if (savedUrl) datasetUrl.value = savedUrl;
   const savedSyncKey = localStorage.getItem(LS_SYNC_KEY);
   if (savedSyncKey) syncKey.value = savedSyncKey;
+  const savedThemes = localStorage.getItem(LS_THEMES_KEY);
+  if (savedThemes) {
+    try {
+      const parsed: string[] = JSON.parse(savedThemes);
+      selectedThemes.value = parsed.filter((t) => THEMES_SUB.includes(t));
+    } catch {}
+  }
   pullFromConvex();
 });
 
 watch(datasetSource, (v) => localStorage.setItem(LS_SOURCE_KEY, v));
 watch(datasetUrl, (v) => localStorage.setItem(LS_URL_KEY, v));
+watch(selectedThemes, (v) => localStorage.setItem(LS_THEMES_KEY, JSON.stringify(v)));
 watch(syncKey, (v) => {
   localStorage.setItem(LS_SYNC_KEY, v);
   if (v) setSyncKey(v);
@@ -286,7 +322,8 @@ function handleStart() {
   if (datasetSource.value === "url") {
     sessionStorage.setItem("datasetUrl", datasetUrl.value.trim());
   }
-  navigateTo({ path: "/exam", state: { theme: themeSetIndex.value } });
+  sessionStorage.setItem("examThemes", JSON.stringify(selectedThemes.value));
+  navigateTo("/exam");
 }
 </script>
 
@@ -464,6 +501,20 @@ function handleStart() {
   background: var(--c-bleu-pale);
   border-color: var(--c-bleu);
   color: var(--c-bleu);
+}
+
+.themeBtnPartial {
+  border-color: var(--c-sepia);
+  color: var(--c-sepia);
+}
+
+.subThemeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.1rem;
+  padding-left: 0.85rem;
+  border-left: 1px dashed var(--c-linenD);
 }
 
 .syncStatus {
