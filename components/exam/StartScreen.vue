@@ -13,6 +13,19 @@
         </div>
       </div>
 
+      <!-- ── Apprendre ── -->
+      <div :class="$style.sectionHeading">apprendre</div>
+
+      <WhimcBtn variant="outline" :class="$style.btnTimeline" @click="navigateTo('/timeline')">
+        timeline civique →
+      </WhimcBtn>
+
+      <!-- ── divider ── -->
+      <div :class="$style.divider"><span>×</span></div>
+
+      <!-- ── Test ── -->
+      <div :class="$style.sectionHeading">test</div>
+
       <WhimcPatch accent="var(--c-bleu)">
         <div :class="$style.patchHeading">règles — mode super-hard</div>
         <div
@@ -590,10 +603,39 @@ function handleStart() {
   cursor: default;
 }
 
+.sectionHeading {
+  font-family: var(--f-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-sepia);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--c-sepia);
+  font-family: var(--f-body);
+  font-size: 0.9rem;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    border-top: 1px dashed var(--c-linenD);
+  }
+}
+
 .btnStart {
   font-family: var(--f-display) !important;
   font-size: 1.05rem !important;
   padding: 0.85rem !important;
+}
+
+.btnTimeline {
+  width: 100%;
+  font-size: 0.78rem !important;
 }
 
 .footer {
