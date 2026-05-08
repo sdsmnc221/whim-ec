@@ -9,27 +9,67 @@
           whim<span style="color: var(--c-rouge)">·</span>ec
         </h1>
         <div :class="$style.description">
-          40 questions · 45 min · seuil 80 %
+          40 questions · 45 min · seuil 80å%
         </div>
       </div>
 
-      <!-- ── Apprendre ── -->
-      <div :class="$style.sectionHeading">apprendre</div>
+      <div :class="$style.sectionHeading">learn</div>
 
-      <WhimcBtn variant="outline" :class="$style.btnTimeline" @click="navigateTo('/timeline')">
+      <WhimcBtn
+        variant="outline"
+        :class="$style.btnTimeline"
+        @click="navigateTo('/timeline')"
+      >
         timeline civique →
       </WhimcBtn>
 
       <!-- ── divider ── -->
       <div :class="$style.divider"><span>×</span></div>
 
-      <!-- ── Test ── -->
       <div :class="$style.sectionHeading">test</div>
 
+      <WhimcPatch>
+        <div :class="$style.patchHeading">mode</div>
+        <div :class="$style.modeOptions">
+          <button
+            :class="[$style.modeBtn, examMode === 'super-hard' && $style.modeBtnActive]"
+            @click="examMode = 'super-hard'"
+          >
+            {{ examMode === "super-hard" ? "× " : "" }}super-hard
+          </button>
+          <button
+            :class="[$style.modeBtn, examMode === 'marathon' && $style.modeBtnActive, !canMarathon && $style.modeBtnDisabled]"
+            :disabled="!canMarathon"
+            @click="examMode = 'marathon'"
+          >
+            {{ examMode === "marathon" ? "× " : "" }}marathon
+          </button>
+          <template v-if="examMode === 'marathon'">
+            <span :class="$style.modeSep">·</span>
+            <button
+              v-for="size in MARATHON_SIZES"
+              :key="size"
+              :class="[$style.sizeBtn, marathonSize === size && $style.sizeBtnActive, !availableMarathonSizes.includes(size) && $style.modeBtnDisabled]"
+              :disabled="!availableMarathonSizes.includes(size)"
+              @click="marathonSize = size"
+            >
+              {{ marathonSize === size ? "× " : "" }}{{ size }}q
+            </button>
+          </template>
+        </div>
+
+        <div v-if="examMode === 'marathon'" :class="$style.marathonNote">
+          <template v-if="!canMarathon">dataset insuffisant — 2 blocs minimum requis</template>
+          <template v-else>{{ marathonSize / 40 }} blocs · {{ (marathonSize / 40) * 45 }} min · seuil 32/40 normalisé</template>
+        </div>
+      </WhimcPatch>
+
       <WhimcPatch accent="var(--c-bleu)">
-        <div :class="$style.patchHeading">règles — mode super-hard</div>
+        <div :class="$style.patchHeading">
+          règles — mode {{ examMode }}
+        </div>
         <div
-          v-for="([k, v], index) in RULES"
+          v-for="([k, v], index) in currentRules"
           :key="`rules-${index}`"
           :class="$style.rule"
         >
@@ -190,6 +230,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { THEMES, RULES } from "../../utils/constants";
+import { MARATHON_SIZES, MISE_COUNT, type MarathonSize } from "../../composables/useExamEngine";
 import { useStats } from "../../composables/useStats";
 import CrossStitch from "../ui/CrossStitch.vue";
 import WhimcPatch from "../ui/WhimcPatch.vue";
@@ -207,6 +248,8 @@ const LS_SOURCE_KEY = "whimec-dataset-source";
 const LS_URL_KEY = "whimec-dataset-url";
 const LS_SYNC_KEY = "whimec-sync-key";
 const LS_THEMES_KEY = "whimec-themes";
+const LS_MODE_KEY = "whimec-exam-mode";
+const LS_MARATHON_SIZE_KEY = "whimec-marathon-size";
 const SS_CONTENT_KEY = "whimec-dataset-content";
 
 const THEMES_SUB = THEMES.slice(1);
@@ -232,8 +275,24 @@ const datasetSource = ref<DatasetSource>("bundled");
 const datasetUrl = ref("");
 const fileName = ref("");
 const fileError = ref("");
+const fileMiseCount = ref(0);
 const syncKey = ref("");
 const copied = ref(false);
+const examMode = ref<"super-hard" | "marathon">("super-hard");
+const marathonSize = ref<MarathonSize>(80);
+
+const datasetMiseCount = computed(() => {
+  if (datasetSource.value === "url") return 0;
+  if (datasetSource.value === "file") return fileMiseCount.value;
+  return 12; // bundled sample has 12 mise-situation
+});
+
+const availableMarathonSizes = computed(() => {
+  const maxBlocks = Math.floor(datasetMiseCount.value / MISE_COUNT);
+  return MARATHON_SIZES.filter((size) => size / 40 <= maxBlocks);
+});
+
+const canMarathon = computed(() => availableMarathonSizes.value.length > 0);
 
 const { stats: questionStats, pullFromConvex, setSyncKey } = useStats();
 
@@ -274,6 +333,12 @@ onMounted(() => {
   if (savedUrl) datasetUrl.value = savedUrl;
   const savedSyncKey = localStorage.getItem(LS_SYNC_KEY);
   if (savedSyncKey) syncKey.value = savedSyncKey;
+  const savedMode = localStorage.getItem(LS_MODE_KEY) as "super-hard" | "marathon" | null;
+  if (savedMode) examMode.value = savedMode;
+  const savedMarathonSize = parseInt(localStorage.getItem(LS_MARATHON_SIZE_KEY) ?? "0");
+  if (savedMarathonSize && MARATHON_SIZES.includes(savedMarathonSize as MarathonSize)) {
+    marathonSize.value = savedMarathonSize as MarathonSize;
+  }
   const savedThemes = localStorage.getItem(LS_THEMES_KEY);
   if (savedThemes) {
     try {
@@ -293,6 +358,13 @@ watch(syncKey, (v) => {
   localStorage.setItem(LS_SYNC_KEY, v);
   if (v) setSyncKey(v);
 });
+watch(examMode, (v) => localStorage.setItem(LS_MODE_KEY, v));
+watch(marathonSize, (v) => localStorage.setItem(LS_MARATHON_SIZE_KEY, String(v)));
+watch(availableMarathonSizes, (sizes) => {
+  if (sizes.length > 0 && !sizes.includes(marathonSize.value)) {
+    marathonSize.value = sizes[0];
+  }
+});
 
 function handleFileSelect(e: Event) {
   fileError.value = "";
@@ -304,9 +376,12 @@ function handleFileSelect(e: Event) {
   reader.onload = (ev) => {
     try {
       const raw = ev.target?.result as string;
-      JSON.parse(raw);
+      const parsed = JSON.parse(raw);
       sessionStorage.setItem(SS_CONTENT_KEY, raw);
       fileName.value = file.name;
+      fileMiseCount.value = Array.isArray(parsed)
+        ? parsed.filter((q: { type?: string }) => q?.type === "mise-situation").length
+        : 0;
     } catch {
       fileError.value = "fichier JSON invalide";
     }
@@ -314,9 +389,22 @@ function handleFileSelect(e: Event) {
   reader.readAsText(file);
 }
 
+const MARATHON_RULES = computed(() => [
+  [`${marathonSize.value} questions`, `${marathonSize.value / 40} blocs de 40`],
+  [`${(marathonSize.value / 40) * 45} minutes`, "durée totale · chrono continu"],
+  ["32 / 40 normalisé", "seuil par bloc et global"],
+  ["Bilan obligatoire", "résultats affichés après chaque bloc"],
+  ["[Faible Confiance] Toggle", "orange · à réviser avant soumission"],
+]);
+
+const currentRules = computed(() =>
+  examMode.value === "marathon" ? MARATHON_RULES.value : RULES,
+);
+
 const canStart = computed(() => {
   if (datasetSource.value === "url") return datasetUrl.value.trim().length > 0;
   if (datasetSource.value === "file") return fileName.value.length > 0;
+  if (examMode.value === "marathon") return availableMarathonSizes.value.includes(marathonSize.value);
   return true;
 });
 
@@ -340,6 +428,10 @@ function handleStart() {
     sessionStorage.setItem("datasetUrl", datasetUrl.value.trim());
   }
   sessionStorage.setItem("examThemes", JSON.stringify(selectedThemes.value));
+  sessionStorage.setItem("examMode", examMode.value);
+  if (examMode.value === "marathon") {
+    sessionStorage.setItem("marathonSize", String(marathonSize.value));
+  }
   navigateTo("/exam");
 }
 </script>
@@ -625,6 +717,65 @@ function handleStart() {
     flex: 1;
     border-top: 1px dashed var(--c-linenD);
   }
+}
+
+.modeOptions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.modeBtn {
+  background: transparent;
+  border: 1px dashed var(--c-linenD);
+  color: var(--c-encre);
+  font-family: var(--f-sans);
+  font-size: 0.78rem;
+  padding: 0.38rem 0.65rem;
+  cursor: pointer;
+}
+
+.modeBtnActive {
+  background: var(--c-bleu-pale);
+  border-color: var(--c-bleu);
+  color: var(--c-bleu);
+}
+
+.modeBtnDisabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.modeSep {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--c-linenD);
+  line-height: 1;
+  align-self: center;
+}
+
+.sizeBtn {
+  background: transparent;
+  border: 1px dashed var(--c-linenD);
+  color: var(--c-encre);
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+}
+
+.sizeBtnActive {
+  background: var(--c-bleu-pale);
+  border-color: var(--c-bleu);
+  color: var(--c-bleu);
+}
+
+.marathonNote {
+  margin-top: 0.55rem;
+  font-family: var(--f-body);
+  font-style: italic;
+  font-size: 0.7rem;
+  color: var(--c-sepia);
 }
 
 .btnStart {

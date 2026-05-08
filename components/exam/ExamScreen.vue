@@ -1,133 +1,180 @@
 <template>
   <div :class="$style.screen">
-    <!-- sticky header -->
-    <div :class="$style.header">
-      <TimerStrip :secs="timeLeft" :answered="answeredCount" :total="total" />
-      <div v-if="phase === 'review'" :class="$style.reviewBanner">
-        <span :class="$style.reviewBannerText">
-          Révision {{ reviewIdx + 1 }}/{{ reviewQ.length }} —
-          {{ answers[current] === null ? "sans réponse" : "confiance faible" }}
-        </span>
-        <WhimcBtn
-          variant="danger"
-          :class="$style.finaliseBtn"
-          @click="doFinalise"
-        >
-          Finaliser →
-        </WhimcBtn>
-      </div>
-    </div>
-
-    <!-- nav dots -->
-    <NavDots
-      :total="total"
-      :answers="answers"
-      :flags="flags"
-      :current="current"
-      @go="navTo($event)"
+    <!-- Block summary (full-screen, replaces exam UI) -->
+    <BlockSummaryScreen
+      v-if="phase === 'block-summary'"
+      :block-index="blockIndex"
+      :total-blocks="totalBlocks"
+      :correct="lastBlockScore.correct"
+      :total="lastBlockScore.total"
+      @continue="continueToNextBlock"
     />
 
-    <!-- submit prompt (all answered, exam phase) -->
-    <div v-if="showPrompt && phase === 'exam'" :class="$style.submitPrompt">
-      <span :class="$style.promptText"
-        >Toutes les questions sont répondues.</span
-      >
-      <div :class="$style.promptActions">
-        <WhimcBtn
-          v-if="lowConfCount > 0"
-          variant="orange"
-          :class="$style.promptBtn"
+    <template v-else>
+      <!-- sticky header -->
+      <div :class="$style.header">
+        <TimerStrip
+          :secs="timeLeft"
+          :answered="blockAnsweredCount"
+          :total="blockSize"
+        />
+        <div v-if="totalBlocks > 1" :class="$style.blockBadge">
+          Bloc {{ blockIndex + 1 }}/{{ totalBlocks }}
+        </div>
+        <div v-if="phase === 'review'" :class="$style.reviewBanner">
+          <span :class="$style.reviewBannerText">
+            Révision {{ reviewIdx + 1 }}/{{ reviewQ.length }} —
+            {{
+              answers[current] === null ? "sans réponse" : "confiance faible"
+            }}
+          </span>
+          <WhimcBtn
+            variant="danger"
+            :class="$style.finaliseBtn"
+            @click="doFinalise"
+          >
+            Finaliser →
+          </WhimcBtn>
+        </div>
+      </div>
+
+      <!-- nav dots (block-scoped) -->
+      <NavDots
+        :total="blockSize"
+        :answers="blockAnswers"
+        :flags="blockFlags"
+        :current="current - blockStart"
+        @go="navTo($event + blockStart)"
+      />
+
+      <!-- submit prompt -->
+      <div v-if="showPrompt && phase === 'exam'" :class="$style.submitPrompt">
+        <span :class="$style.promptText">
+          {{
+            isLastBlock
+              ? "Toutes les questions sont répondues."
+              : `Bloc ${blockIndex + 1}/${totalBlocks} terminé.`
+          }}
+        </span>
+        <div :class="$style.promptActions">
+          <template v-if="isLastBlock">
+            <WhimcBtn
+              v-if="lowConfCount > 0"
+              variant="orange"
+              :class="$style.promptBtn"
+              @click="triggerSubmit"
+            >
+              Réviser ({{ lowConfCount }}) →
+            </WhimcBtn>
+            <WhimcBtn
+              variant="danger"
+              :class="$style.promptBtn"
+              @click="doFinalise"
+            >
+              Soumettre [S]
+            </WhimcBtn>
+          </template>
+          <WhimcBtn
+            v-else
+            variant="primary"
+            :class="$style.promptBtn"
+            @click="endBlock"
+          >
+            Bloc suivant →
+          </WhimcBtn>
+        </div>
+      </div>
+
+      <!-- question (block-local idx) -->
+      <QuestionCard
+        v-if="questions.length"
+        :q="questions[current]"
+        :idx="current - blockStart"
+        :total="blockSize"
+        :answer="answers[current]"
+        :flag="flags[current]"
+        :revealed="false"
+        :phase="phase"
+        @answer="handleAnswer"
+        @flag="handleFlag"
+      />
+
+      <!-- bottom nav -->
+      <div :class="$style.bottomNav">
+        <template v-if="phase === 'review'">
+          <WhimcBtn
+            variant="ghost"
+            :disabled="reviewIdx === 0"
+            @click="reviewNav(-1)"
+          >
+            ← précédent
+          </WhimcBtn>
+          <WhimcBtn
+            variant="ghost"
+            :disabled="reviewIdx === reviewQ.length - 1"
+            @click="reviewNav(1)"
+          >
+            suivant →
+          </WhimcBtn>
+        </template>
+        <template v-else>
+          <WhimcBtn
+            variant="ghost"
+            :disabled="current === blockStart"
+            @click="navPrev"
+          >
+            ← précédent
+          </WhimcBtn>
+          <WhimcBtn
+            v-if="current < blockEnd - 1"
+            variant="outline"
+            @click="navNext"
+          >
+            suivant →
+          </WhimcBtn>
+          <WhimcBtn v-else variant="danger" @click="triggerSubmit">
+            {{ isLastBlock ? "soumettre [S]" : "fin du bloc →" }}
+          </WhimcBtn>
+        </template>
+      </div>
+
+      <!-- status bar -->
+      <div :class="$style.statusBar">
+        <span>{{ blockAnsweredCount }}/{{ blockSize }} répondu</span>
+        <span v-if="lowConfCount > 0" :class="$style.statusOrange">
+          ~ {{ lowConfCount }} confiance faible
+        </span>
+        <span v-if="blockUnansweredCount > 0" :class="$style.statusRouge">
+          ⚠ {{ blockUnansweredCount }} sans réponse
+        </span>
+        <button
+          v-if="phase === 'exam' && blockAnsweredCount > 0"
+          :class="$style.submitInline"
           @click="triggerSubmit"
         >
-          Réviser ({{ lowConfCount }}) →
-        </WhimcBtn>
-        <WhimcBtn
-          variant="danger"
-          :class="$style.promptBtn"
-          @click="doFinalise"
-        >
-          Soumettre [S]
-        </WhimcBtn>
+          {{ isLastBlock ? "[S]oumettre" : "[F]in du bloc" }}
+        </button>
       </div>
-    </div>
-
-    <!-- question -->
-    <QuestionCard
-      v-if="questions.length"
-      :q="questions[current]"
-      :idx="current"
-      :total="total"
-      :answer="answers[current]"
-      :flag="flags[current]"
-      :revealed="false"
-      :phase="phase"
-      @answer="handleAnswer"
-      @flag="handleFlag"
-    />
-
-    <!-- bottom nav -->
-    <div :class="$style.bottomNav">
-      <template v-if="phase === 'review'">
-        <WhimcBtn
-          variant="ghost"
-          :disabled="reviewIdx === 0"
-          @click="reviewNav(-1)"
-        >
-          ← précédent
-        </WhimcBtn>
-        <WhimcBtn
-          variant="ghost"
-          :disabled="reviewIdx === reviewQ.length - 1"
-          @click="reviewNav(1)"
-        >
-          suivant →
-        </WhimcBtn>
-      </template>
-      <template v-else>
-        <WhimcBtn variant="ghost" :disabled="current === 0" @click="navPrev">
-          ← précédent
-        </WhimcBtn>
-        <WhimcBtn v-if="current < total - 1" variant="outline" @click="navNext">
-          suivant →
-        </WhimcBtn>
-        <WhimcBtn v-else variant="danger" @click="triggerSubmit">
-          soumettre [S]
-        </WhimcBtn>
-      </template>
-    </div>
-
-    <!-- status bar -->
-    <div :class="$style.statusBar">
-      <span>{{ answeredCount }}/{{ total }} répondu</span>
-      <span v-if="lowConfCount > 0" :class="$style.statusOrange">
-        ~ {{ lowConfCount }} confiance faible
-      </span>
-      <span v-if="unansweredCount > 0" :class="$style.statusRouge">
-        ⚠ {{ unansweredCount }} sans réponse
-      </span>
-      <button
-        v-if="phase === 'exam' && answeredCount > 0"
-        :class="$style.submitInline"
-        @click="triggerSubmit"
-      >
-        [S] soumettre
-      </button>
-    </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import type { BuiltQuestion } from "../../composables/useExamEngine";
-import { EXAM_SECS } from "../../composables/useExamEngine";
+import { EXAM_SECS, computeScore } from "../../composables/useExamEngine";
 import TimerStrip from "./TimerStrip.vue";
 import NavDots from "./NavDots.vue";
 import QuestionCard from "./QuestionCard.vue";
 import WhimcBtn from "../ui/WhimcBtn.vue";
+import BlockSummaryScreen from "./BlockSummaryScreen.vue";
 
 const props = defineProps<{
   questions: BuiltQuestion[];
+  totalBlocks?: number;
 }>();
+
+const totalBlocks = computed(() => props.totalBlocks ?? 1);
 
 const emit = defineEmits<{
   finalise: [
@@ -136,20 +183,25 @@ const emit = defineEmits<{
       flags: (string | null)[];
       timeUsed: number;
       timesMs: number[];
+      blockScores: { correct: number; total: number }[];
     },
   ];
 }>();
 
 const total = computed(() => props.questions.length);
+const totalSecs = computed(() => EXAM_SECS * totalBlocks.value);
 
 const answers = ref<(number | null)[]>(Array(total.value).fill(null));
 const flags = ref<(string | null)[]>(Array(total.value).fill(null));
 const current = ref(0);
-const timeLeft = ref(EXAM_SECS);
-const phase = ref<"exam" | "review">("exam");
+const timeLeft = ref(totalSecs.value);
+const phase = ref<"exam" | "review" | "block-summary">("exam");
 const reviewQ = ref<number[]>([]);
 const reviewIdx = ref(0);
 const showPrompt = ref(false);
+
+const blockIndex = ref(0);
+const blockScores = ref<{ correct: number; total: number }[]>([]);
 
 const questionStartedAt = ref<number>(Date.now());
 const timesMs = ref<number[]>(Array(total.value).fill(0));
@@ -157,12 +209,39 @@ const timesMs = ref<number[]>(Array(total.value).fill(0));
 let timer: ReturnType<typeof setInterval> | null = null;
 let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
 
-async function cancelAutoAdvance() {
-  if (autoAdvanceTimer !== null) {
-    clearTimeout(autoAdvanceTimer);
-    autoAdvanceTimer = null;
-  }
-}
+// Block boundaries
+const blockStart = computed(() => blockIndex.value * 40);
+const blockEnd = computed(() => Math.min(blockStart.value + 40, total.value));
+const blockSize = computed(() => blockEnd.value - blockStart.value);
+const isLastBlock = computed(() => blockIndex.value === totalBlocks.value - 1);
+
+// Block-scoped slices for NavDots
+const blockAnswers = computed(() =>
+  answers.value.slice(blockStart.value, blockEnd.value),
+);
+const blockFlags = computed(() =>
+  flags.value.slice(blockStart.value, blockEnd.value),
+);
+
+// Block-scoped counts
+const blockAnsweredCount = computed(
+  () => blockAnswers.value.filter((a) => a !== null).length,
+);
+const lowConfCount = computed(
+  () => blockFlags.value.filter((f) => f === "low-confidence").length,
+);
+const blockUnansweredCount = computed(
+  () => blockAnswers.value.filter((a) => a === null).length,
+);
+
+// Last block score (for BlockSummaryScreen)
+const lastBlockScore = computed(
+  () =>
+    blockScores.value[blockScores.value.length - 1] ?? {
+      correct: 0,
+      total: 40,
+    },
+);
 
 onMounted(() => {
   timer = setInterval(() => {
@@ -183,31 +262,33 @@ function clearTimer() {
   }
 }
 
-const answeredCount = computed(
-  () => answers.value.filter((a) => a !== null).length,
-);
-const lowConfCount = computed(
-  () => flags.value.filter((f) => f === "low-confidence").length,
-);
-const unansweredCount = computed(
-  () => answers.value.filter((a) => a === null).length,
-);
+function cancelAutoAdvance() {
+  if (autoAdvanceTimer !== null) {
+    clearTimeout(autoAdvanceTimer);
+    autoAdvanceTimer = null;
+  }
+}
 
-async function handleAnswer(i: number) {
+function handleAnswer(i: number) {
   if (phase.value !== "exam" && phase.value !== "review") return;
   answers.value[current.value] = i;
 
   if (phase.value === "exam") {
-    await cancelAutoAdvance();
+    cancelAutoAdvance();
+    const answeredAt = current.value;
     autoAdvanceTimer = setTimeout(() => {
       autoAdvanceTimer = null;
+      if (current.value !== answeredAt) return;
       const next = answers.value.findIndex(
-        (a, idx) => idx > current.value && a === null,
+        (a, idx) => idx > current.value && idx < blockEnd.value && a === null,
       );
       if (next !== -1) {
         current.value = next;
       } else {
-        const firstUnanswered = answers.value.findIndex((a) => a === null);
+        const firstUnanswered = answers.value.findIndex(
+          (a, idx) =>
+            idx >= blockStart.value && idx < blockEnd.value && a === null,
+        );
         if (firstUnanswered === -1) {
           showPrompt.value = true;
         } else {
@@ -224,12 +305,18 @@ function handleFlag() {
 }
 
 function triggerSubmit() {
-  clearTimer();
   showPrompt.value = false;
+  if (!isLastBlock.value) {
+    endBlock();
+    return;
+  }
+  clearTimer();
   const toReview: number[] = [];
-  answers.value.forEach((a, i) => {
-    if (flags.value[i] === "low-confidence" || a === null) toReview.push(i);
-  });
+  for (let i = blockStart.value; i < blockEnd.value; i++) {
+    if (flags.value[i] === "low-confidence" || answers.value[i] === null) {
+      toReview.push(i);
+    }
+  }
   if (toReview.length === 0) {
     doFinalise();
   } else {
@@ -240,35 +327,57 @@ function triggerSubmit() {
   }
 }
 
+function endBlock() {
+  timesMs.value[current.value] += Date.now() - questionStartedAt.value;
+  questionStartedAt.value = Date.now(); // prevent watch double-count on block transition
+  const blockQs = props.questions.slice(blockStart.value, blockEnd.value);
+  const blockAns = answers.value.slice(blockStart.value, blockEnd.value);
+  const { correct, total: bt } = computeScore(blockQs, blockAns);
+  blockScores.value.push({ correct, total: bt });
+  phase.value = "block-summary";
+}
+
+function continueToNextBlock() {
+  blockIndex.value++;
+  current.value = blockStart.value;
+  questionStartedAt.value = Date.now();
+  phase.value = "exam";
+  showPrompt.value = false;
+}
+
 function doFinalise() {
   timesMs.value[current.value] += Date.now() - questionStartedAt.value;
   clearTimer();
+  const blockQs = props.questions.slice(blockStart.value, blockEnd.value);
+  const blockAns = answers.value.slice(blockStart.value, blockEnd.value);
+  const { correct, total: bt } = computeScore(blockQs, blockAns);
+  blockScores.value.push({ correct, total: bt });
   emit("finalise", {
     answers: answers.value,
     flags: flags.value,
-    timeUsed: EXAM_SECS - timeLeft.value,
+    timeUsed: totalSecs.value - timeLeft.value,
     timesMs: timesMs.value,
+    blockScores: blockScores.value,
   });
 }
 
-async function navTo(n: number) {
-  await cancelAutoAdvance();
-  current.value = n;
+function navTo(n: number) {
+  cancelAutoAdvance();
+  current.value = Math.max(blockStart.value, Math.min(blockEnd.value - 1, n));
 }
 
-async function navPrev() {
-  await cancelAutoAdvance();
-
-  current.value = Math.max(0, current.value - 1);
+function navPrev() {
+  cancelAutoAdvance();
+  current.value = Math.max(blockStart.value, current.value - 1);
 }
 
-async function navNext() {
-  await cancelAutoAdvance();
-  current.value = Math.min(total.value - 1, current.value + 1);
+function navNext() {
+  cancelAutoAdvance();
+  current.value = Math.min(blockEnd.value - 1, current.value + 1);
 }
 
-async function reviewNav(dir: -1 | 1) {
-  await cancelAutoAdvance();
+function reviewNav(dir: -1 | 1) {
+  cancelAutoAdvance();
   const next = Math.max(
     0,
     Math.min(reviewQ.value.length - 1, reviewIdx.value + dir),
@@ -303,6 +412,16 @@ watch(current, (_new, old) => {
   background-color: var(--c-linen);
   padding-bottom: 0.5rem;
   padding-top: 0.2rem;
+}
+
+.blockBadge {
+  font-family: var(--f-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--c-sepia);
+  margin-top: 0.2rem;
+  text-align: right;
 }
 
 .reviewBanner {

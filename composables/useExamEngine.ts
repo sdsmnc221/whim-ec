@@ -80,6 +80,46 @@ export const drawQuestions = (
     .map((q, i) => buildQ(q, seededRng(seed + i * 37)));
 };
 
+export const MARATHON_SIZES = [80, 120, 160] as const;
+export type MarathonSize = (typeof MARATHON_SIZES)[number];
+
+export const drawMarathonQuestions = (
+  dataset: RawQuestion[],
+  themes: string[],
+  seed: number,
+  totalQuestions: number,
+): BuiltQuestion[] => {
+  const blocks = totalQuestions / 40;
+  const filter = (q: RawQuestion) =>
+    themes.length === 0 || themes.includes(q.theme);
+
+  const allConn = shuffle(
+    dataset.filter((q) => q.type === "connaissance" && filter(q)),
+    seededRng(seed),
+  );
+  const allMise = shuffle(
+    dataset.filter((q) => q.type === "mise-situation" && filter(q)),
+    seededRng(seed + 1),
+  );
+
+  const all: RawQuestion[] = [];
+  for (let b = 0; b < blocks; b++) {
+    const conn = allConn.slice(b * CONN_COUNT, (b + 1) * CONN_COUNT);
+    const mise = allMise.slice(b * MISE_COUNT, (b + 1) * MISE_COUNT);
+    let ci = 0,
+      mi = 0;
+    while (ci < conn.length || mi < mise.length) {
+      if (ci < conn.length) all.push(conn[ci++]);
+      if (ci < conn.length) all.push(conn[ci++]);
+      if (mi < mise.length) all.push(mise[mi++]);
+    }
+  }
+
+  return all
+    .slice(0, totalQuestions)
+    .map((q, i) => buildQ(q, seededRng(seed + i * 37)));
+};
+
 export const computeScore = (
   questions: BuiltQuestion[],
   answers: (number | null)[],

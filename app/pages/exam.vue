@@ -8,6 +8,7 @@
   <ExamScreen
     v-else-if="screen === 'exam' && questions.length"
     :questions="questions"
+    :total-blocks="totalBlocks"
     @finalise="handleFinalise"
   />
   <div
@@ -21,7 +22,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import type { BuiltQuestion } from "../../composables/useExamEngine";
-import { drawQuestions } from "../../composables/useExamEngine";
+import { drawQuestions, drawMarathonQuestions } from "../../composables/useExamEngine";
 import { useStats } from "../../composables/useStats";
 import ExamScreen from "../../components/exam/ExamScreen.vue";
 import ResultsScreen from "../../components/exam/ResultsScreen.vue";
@@ -39,11 +40,13 @@ definePageMeta({
 
 const screen = ref<"exam" | "results">("exam");
 const questions = ref<BuiltQuestion[]>([]);
+const totalBlocks = ref(1);
 const result = ref<{
   answers: (number | null)[];
   flags: (string | null)[];
   timeUsed: number;
   timesMs: number[];
+  blockScores: { correct: number; total: number }[];
 } | null>(null);
 const loadError = ref("");
 
@@ -53,11 +56,23 @@ onMounted(async () => {
   const themesRaw = sessionStorage.getItem("examThemes");
   sessionStorage.removeItem("examThemes");
   const themes: string[] = themesRaw ? JSON.parse(themesRaw) : [];
+
+  const examMode = sessionStorage.getItem("examMode") ?? "super-hard";
+  const marathonSize = parseInt(sessionStorage.getItem("marathonSize") ?? "0");
+  sessionStorage.removeItem("examMode");
+  sessionStorage.removeItem("marathonSize");
+
   const seed = Date.now() % 999983;
 
   try {
     const dataset = await loadDataset();
-    questions.value = drawQuestions(dataset, themes, seed);
+    if (examMode === "marathon" && marathonSize >= 80) {
+      questions.value = drawMarathonQuestions(dataset, themes, seed, marathonSize);
+      totalBlocks.value = marathonSize / 40;
+    } else {
+      questions.value = drawQuestions(dataset, themes, seed);
+      totalBlocks.value = 1;
+    }
   } catch (e) {
     loadError.value =
       e instanceof Error ? e.message : "Erreur de chargement du dataset.";
@@ -91,6 +106,7 @@ function handleFinalise(res: {
   flags: (string | null)[];
   timeUsed: number;
   timesMs: number[];
+  blockScores: { correct: number; total: number }[];
 }) {
   result.value = res;
   screen.value = "results";

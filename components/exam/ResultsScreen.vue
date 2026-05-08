@@ -12,13 +12,20 @@
         <WhimcCorners :accent="heroAccent" />
         <div :class="$style.hero" :style="{ borderColor: heroAccent }">
           <CrossStitch :color="heroAccent" :count="8" :seed="77" />
-          <div :class="$style.heroLabel">résultats · super-hard</div>
+          <div :class="$style.heroLabel">
+            résultats · {{ isMarathon ? "marathon" : "super-hard" }}
+          </div>
           <div :class="$style.heroScore" :style="{ color: heroAccent }">
-            {{ score.correct }}
+            {{ isMarathon ? score40 : score.correct }}
           </div>
           <div :class="$style.heroSub">
-            sur {{ score.total }} · {{ Math.round(score.pct * 100) }} %
-            <template v-if="score.hasVerdict"> · seuil 32/40</template>
+            <template v-if="isMarathon">
+              {{ score.correct }}/{{ score.total }} brut · normalisé /40 · seuil 32/40
+            </template>
+            <template v-else>
+              sur {{ score.total }} · {{ Math.round(score.pct * 100) }} %
+              <template v-if="score.hasVerdict"> · seuil 32/40</template>
+            </template>
           </div>
           <WhimcStamp
             v-if="score.hasVerdict"
@@ -55,6 +62,41 @@
           </div>
         </div>
       </div>
+
+      <!-- per-block breakdown (marathon only) -->
+      <WhimcPatch v-if="isMarathon && result.blockScores && result.blockScores.length">
+        <div :class="$style.sectionLabel">par bloc</div>
+        <div
+          v-for="(bs, i) in result.blockScores"
+          :key="i"
+          :class="$style.themeRow"
+        >
+          <div :class="$style.themeRowMeta">
+            <span :class="$style.themeShort">Bloc {{ i + 1 }}</span>
+            <span
+              :class="$style.themeScore"
+              :style="{
+                color:
+                  bs.correct >= 32 ? 'var(--c-vert)' : 'var(--c-rouge)',
+              }"
+            >
+              {{ bs.correct }}/{{ bs.total }}
+            </span>
+          </div>
+          <div :class="$style.themeTrack">
+            <div
+              :class="$style.themeFill"
+              :style="{
+                width: `${(bs.correct / bs.total) * 100}%`,
+                background:
+                  bs.correct / bs.total >= PASS_THRESHOLD
+                    ? 'var(--c-vert)'
+                    : 'var(--c-rouge)',
+              }"
+            />
+          </div>
+        </div>
+      </WhimcPatch>
 
       <!-- by theme -->
       <WhimcPatch>
@@ -173,6 +215,7 @@ const props = defineProps<{
     answers: (number | null)[];
     flags: (string | null)[];
     timeUsed: number;
+    blockScores?: { correct: number; total: number }[];
   };
 }>();
 
@@ -183,7 +226,13 @@ const showWrong = ref(false);
 
 const { answers, flags, timeUsed } = props.result;
 
+const isMarathon = computed(
+  () => (props.result.blockScores?.length ?? 0) > 0,
+);
 const score = computed(() => computeScore(props.questions, answers));
+const score40 = computed(() =>
+  Math.round((score.value.correct / score.value.total) * 40),
+);
 
 const needed = computed(() =>
   Math.ceil(props.questions.length * PASS_THRESHOLD) - score.value.correct,
