@@ -12,16 +12,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { THEME_SHORT } from "../utils/constants";
+import { THEME_SHORT, THEME_COLOR } from "../utils/constants";
 import type { TimelineEntry } from "../types/timeline";
-
-const THEME_COLOR: Record<string, string> = {
-  "Principes et valeurs de la République": "var(--c-bleu)",
-  "Système institutionnel et politique": "var(--c-encre)",
-  "Droits et devoirs": "var(--c-vert)",
-  "Histoire, géographie et culture": "var(--c-orange)",
-  "Vivre dans la société française": "var(--c-rouge)",
-};
 
 const props = defineProps<{ entry: TimelineEntry }>();
 defineEmits<{ select: [] }>();

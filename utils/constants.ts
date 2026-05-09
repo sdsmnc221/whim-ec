@@ -23,4 +23,12 @@ const THEME_SHORT: Record<string, string> = {
   "Vivre dans la société française": "Société",
 };
 
-export { THEMES, RULES, THEME_SHORT };
+const THEME_COLOR: Record<string, string> = {
+  "Principes et valeurs de la République": "var(--c-bleu)",
+  "Système institutionnel et politique": "var(--c-encre)",
+  "Droits et devoirs": "var(--c-vert)",
+  "Histoire, géographie et culture": "var(--c-orange)",
+  "Vivre dans la société française": "var(--c-rouge)",
+};
+
+export { THEMES, RULES, THEME_SHORT, THEME_COLOR };
