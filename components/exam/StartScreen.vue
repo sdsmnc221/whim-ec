@@ -149,31 +149,7 @@
 
       <WhimcPatch>
         <div :class="$style.patchHeading">filtrer par thème</div>
-        <div :class="$style.themesContainer">
-          <button
-            :class="[
-              $style.themeBtn,
-              masterState === '×' && $style.themeBtnActive,
-              masterState === '~' && $style.themeBtnPartial,
-            ]"
-            @click="toggleMaster"
-          >
-            {{ masterState ? masterState + " " : "" }}Tous les thèmes
-          </button>
-          <div :class="$style.subThemeGroup">
-            <button
-              v-for="theme in THEMES_SUB"
-              :key="theme"
-              :class="[
-                $style.themeBtn,
-                selectedThemes.includes(theme) && $style.themeBtnActive,
-              ]"
-              @click="toggleTheme(theme)"
-            >
-              {{ selectedThemes.includes(theme) ? "× " : "" }}{{ theme }}
-            </button>
-          </div>
-        </div>
+        <ThemesFilter v-model="selectedThemes" :themes="THEMES_SUB" />
       </WhimcPatch>
 
       <WhimcPatch>
@@ -267,6 +243,7 @@ import { useStats } from "../../composables/useStats";
 import CrossStitch from "../ui/CrossStitch.vue";
 import WhimcPatch from "../ui/WhimcPatch.vue";
 import WhimcBtn from "../ui/WhimcBtn.vue";
+import ThemesFilter from "../ui/ThemesFilter.vue";
 
 type DatasetSource = "bundled" | "url" | "file";
 
@@ -286,23 +263,6 @@ const SS_CONTENT_KEY = "whimec-dataset-content";
 
 const THEMES_SUB = THEMES.slice(1);
 const selectedThemes = ref<string[]>([...THEMES_SUB]);
-
-const masterState = computed<"×" | "~" | "">(() => {
-  if (selectedThemes.value.length === THEMES_SUB.length) return "×";
-  if (selectedThemes.value.length === 0) return "";
-  return "~";
-});
-
-function toggleMaster() {
-  selectedThemes.value =
-    selectedThemes.value.length === THEMES_SUB.length ? [] : [...THEMES_SUB];
-}
-
-function toggleTheme(theme: string) {
-  selectedThemes.value = selectedThemes.value.includes(theme)
-    ? selectedThemes.value.filter((t) => t !== theme)
-    : [...selectedThemes.value, theme];
-}
 const datasetSource = ref<DatasetSource>("bundled");
 const datasetUrl = ref("");
 const fileName = ref("");
@@ -635,43 +595,6 @@ function handleStart() {
   font-family: var(--f-mono);
   font-size: 0.65rem;
   color: var(--c-rouge);
-}
-
-.themesContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.themeBtn {
-  background: transparent;
-  border: 1px dashed var(--c-linenD);
-  color: var(--c-encre);
-  font-family: var(--f-sans);
-  font-size: 0.78rem;
-  text-align: left;
-  padding: 0.38rem 0.65rem;
-  cursor: pointer;
-}
-
-.themeBtnActive {
-  background: var(--c-bleu-pale);
-  border-color: var(--c-bleu);
-  color: var(--c-bleu);
-}
-
-.themeBtnPartial {
-  border-color: var(--c-sepia);
-  color: var(--c-sepia);
-}
-
-.subThemeGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.1rem;
-  padding-left: 0.85rem;
-  border-left: 1px dashed var(--c-linenD);
 }
 
 .syncStatus {

@@ -55,5 +55,19 @@ export function useConceptProgress() {
       .map((p) => p.conceptId),
   );
 
-  return { records, pullFromConvex, getProgress, markSeen, toggleBookmark, bookmarkedIds };
+  const seenIds = computed(() =>
+    [...progressMap.value.values()]
+      .filter((p) => p.seen)
+      .map((p) => p.conceptId),
+  );
+
+  return {
+    records,
+    pullFromConvex,
+    getProgress,
+    markSeen,
+    toggleBookmark,
+    bookmarkedIds,
+    seenIds,
+  };
 }

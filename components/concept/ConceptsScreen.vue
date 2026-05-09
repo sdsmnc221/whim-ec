@@ -6,7 +6,11 @@
       <span v-if="source"
         >·
         {{
-          showBookmarks ? bookmarkedConcepts.length : filteredConcepts.length
+          showBookmarks
+            ? bookmarkedConcepts.length
+            : showSeen
+              ? seenConcepts.length
+              : filteredConcepts.length
         }}</span
       >
     </span>
@@ -34,20 +38,33 @@
 
   <div v-else :class="$style.screen">
     <div :class="$style.filterWrap">
-      <div :class="$style.filterHeading">filtrer par favori.s</div>
+      <div :class="$style.filterHeading">filtrer par</div>
       <button
         v-if="source"
         :class="[
-          $style.bookmarkToggle,
-          showBookmarks && $style.bookmarkToggleActive,
+          $style.filterToggle,
+          showBookmarks && $style.filterToggleActive,
         ]"
-        @click="showBookmarks = !showBookmarks"
+        @click="
+          showBookmarks = !showBookmarks;
+          if (showBookmarks) showSeen = false;
+        "
       >
         ◆ {{ bookmarkedIds.length }}
       </button>
+      <button
+        v-if="source"
+        :class="[$style.filterToggle, showSeen && $style.filterToggleActive]"
+        @click="
+          showSeen = !showSeen;
+          if (showSeen) showBookmarks = false;
+        "
+      >
+        vu · {{ seenIds.length }}
+      </button>
     </div>
     <ThemesFilter
-      v-if="!showBookmarks"
+      v-if="!showBookmarks && !showSeen"
       v-model="selectedThemes"
       :themes="THEMES_SUB"
       variant="chips"
@@ -68,6 +85,20 @@
       </div>
     </template>
 
+    <template v-else-if="showSeen">
+      <p v-if="seenConcepts.length === 0" :class="$style.empty">
+        Aucune fiche vue pour l’instant
+      </p>
+      <div v-else :class="$style.grid">
+        <ConceptCard
+          v-for="c in seenConcepts"
+          :key="c.id"
+          :concept="c"
+          :progress="getProgress(c.id)"
+          @open="activeConceptId = c.id"
+        />
+      </div>
+    </template>
     <template v-else>
       <p v-if="selectedThemes.length === 0" :class="$style.empty">
         Choisissez un thème pour explorer les fiches
@@ -120,12 +151,20 @@ const {
   loadFile,
   loadFromSessionStorage,
 } = useConcepts();
-const { getProgress, markSeen, toggleBookmark, pullFromConvex, bookmarkedIds } =
-  useConceptProgress();
+const {
+  getProgress,
+  markSeen,
+  toggleBookmark,
+  pullFromConvex,
+  bookmarkedIds,
+  seenIds,
+} = useConceptProgress();
 
 const showBookmarks = ref(false);
+const showSeen = ref(false);
 watch(source, () => {
   showBookmarks.value = false;
+  showSeen.value = false;
 });
 
 onMounted(async () => {
@@ -174,6 +213,9 @@ const activeConcept = computed(() =>
 );
 const bookmarkedConcepts = computed(() =>
   concepts.value.filter((c) => bookmarkedIds.value.includes(c.id)),
+);
+const seenConcepts = computed(() =>
+  concepts.value.filter((c) => seenIds.value.includes(c.id)),
 );
 const activeProgress = computed(() =>
   activeConcept.value
@@ -275,11 +317,12 @@ function onFile(e: Event) {
 }
 
 .filterWrap {
-  padding: 1rem 0;
+  padding: 0.75rem 0;
   margin-bottom: 0.75rem;
   border-bottom: 1px dashed var(--c-linenD);
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .filterHeading {
@@ -287,17 +330,16 @@ function onFile(e: Event) {
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--c-sepia);
-  margin-bottom: 0.6rem;
+  margin-right: auto;
 }
 
-.bookmarkToggle {
-  margin-left: auto;
+.filterToggle {
   background: none;
   border: 1px dashed var(--c-linenD);
   color: var(--c-sepia);
   font-family: var(--f-mono);
   font-size: 0.65rem;
-  padding: 0.35rem 0.65rem;
+  padding: 0.25rem 0.55rem;
   cursor: pointer;
   flex-shrink: 0;
   transition:
@@ -311,7 +353,7 @@ function onFile(e: Event) {
   }
 }
 
-.bookmarkToggleActive {
+.filterToggleActive {
   border-color: var(--c-encre);
   color: var(--c-encre);
   background: color-mix(in srgb, var(--c-encre) 6%, transparent);
