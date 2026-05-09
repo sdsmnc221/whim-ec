@@ -10,12 +10,14 @@
       >
     </div>
 
-    <ThemesFilter
-      v-model="selectedThemes"
-      :themes="THEMES_SUB"
-      :count="filteredEntries.length"
-      count-label="entrée"
-    />
+    <div :class="$style.filterWrap">
+      <ThemesFilter
+        v-model="selectedThemes"
+        :themes="THEMES_SUB"
+        :count="filteredEntries.length"
+        count-label="entrée"
+      />
+    </div>
 
     <div :class="$style.list">
       <TimelineItem
@@ -144,5 +146,9 @@ onMounted(async () => {
   color: var(--c-sepia);
   text-align: center;
   padding: 2rem 0;
+}
+
+.filterWrap {
+  padding: 0 1.25rem;
 }
 </style>
