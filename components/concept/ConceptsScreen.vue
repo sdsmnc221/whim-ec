@@ -14,6 +14,9 @@
         }}</span
       >
     </span>
+    <button v-if="source" :class="$style.changeSource" @click="clearSource">
+      changer source
+    </button>
   </div>
 
   <div v-if="!source" :class="$style.pickerScreen">
@@ -223,6 +226,14 @@ const activeProgress = computed(() =>
     : { conceptId: "", seen: 0, bookmarked: false },
 );
 
+function clearSource() {
+  if (import.meta.client) localStorage.removeItem(LS_SOURCE_KEY);
+  source.value = null;
+  showBookmarks.value = false;
+  showSeen.value = false;
+  activeConceptId.value = null;
+}
+
 async function handleLoadBundled() {
   if (import.meta.client) localStorage.setItem(LS_SOURCE_KEY, "bundled");
   await loadBundled();
@@ -368,6 +379,23 @@ function onFile(e: Event) {
   padding: 0.35rem 0.65rem;
   cursor: pointer;
   flex-shrink: 0;
+
+  &:hover {
+    border-color: var(--c-encre);
+    color: var(--c-encre);
+  }
+}
+
+.changeSource {
+  background: none;
+  border: 1px dashed var(--c-linenD);
+  color: var(--c-sepia);
+  font-family: var(--f-mono);
+  font-size: 0.55rem;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: auto;
 
   &:hover {
     border-color: var(--c-encre);
