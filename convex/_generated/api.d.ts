@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as conceptProgress from "../conceptProgress.js";
 import type * as stats from "../stats.js";
 
 import type {
@@ -17,6 +18,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  conceptProgress: typeof conceptProgress;
   stats: typeof stats;
 }>;
 

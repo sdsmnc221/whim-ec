@@ -13,17 +13,72 @@
         </div>
       </div>
 
-      <div :class="$style.sectionHeading">learn</div>
+      <div :class="$style.sectionHeading">sync</div>
 
-      <WhimcBtn
-        variant="outline"
-        :class="$style.btnTimeline"
-        @click="navigateTo('/timeline')"
-      >
-        timeline civique →
-      </WhimcBtn>
+      <WhimcPatch>
+        <div :class="$style.patchHeading">synchronisation des stats</div>
+        <div :class="$style.syncStatus">
+          <span
+            :class="$style.syncDot"
+            :style="{
+              background: syncKey ? 'var(--c-vert)' : 'var(--c-linenD)',
+            }"
+          />
+          <span>{{
+            syncKey
+              ? "clé active — stats synchro multi-appareils"
+              : "hors-ligne — stats locales uniquement"
+          }}</span>
+        </div>
+        <div :class="$style.syncInputRow">
+          <input
+            v-model="syncKey"
+            :class="$style.syncInput"
+            type="password"
+            placeholder="coller votre clé de sync →"
+            autocomplete="off"
+          />
+        </div>
+        <div :class="$style.syncActions">
+          <button :class="$style.syncBtn" @click="generateSyncKey">
+            générer
+          </button>
+          <button
+            :class="[$style.syncBtn, !syncKey && $style.syncBtnDisabled]"
+            :disabled="!syncKey"
+            @click="copySyncKey"
+          >
+            {{ copied ? "× copié !" : "copier" }}
+          </button>
+        </div>
+      </WhimcPatch>
 
       <!-- ── divider ── -->
+      <div :class="$style.divider"><span>×</span></div>
+
+      <div :class="$style.sectionHeading">learn</div>
+
+      <WhimcPatch>
+        <div :class="$style.patchHeading">mode</div>
+        <div :class="$style.learnContainer">
+          <WhimcBtn
+            variant="outline"
+            :class="$style.btnTimeline"
+            @click="navigateTo('/timeline')"
+          >
+            timeline civique →
+          </WhimcBtn>
+
+          <WhimcBtn
+            variant="outline"
+            :class="$style.btnLearn"
+            @click="navigateTo('/concepts')"
+          >
+            concepts républicains →
+          </WhimcBtn>
+        </div>
+      </WhimcPatch>
+
       <div :class="$style.divider"><span>×</span></div>
 
       <div :class="$style.sectionHeading">test</div>
@@ -32,13 +87,20 @@
         <div :class="$style.patchHeading">mode</div>
         <div :class="$style.modeOptions">
           <button
-            :class="[$style.modeBtn, examMode === 'super-hard' && $style.modeBtnActive]"
+            :class="[
+              $style.modeBtn,
+              examMode === 'super-hard' && $style.modeBtnActive,
+            ]"
             @click="examMode = 'super-hard'"
           >
             {{ examMode === "super-hard" ? "× " : "" }}super-hard
           </button>
           <button
-            :class="[$style.modeBtn, examMode === 'marathon' && $style.modeBtnActive, !canMarathon && $style.modeBtnDisabled]"
+            :class="[
+              $style.modeBtn,
+              examMode === 'marathon' && $style.modeBtnActive,
+              !canMarathon && $style.modeBtnDisabled,
+            ]"
             :disabled="!canMarathon"
             @click="examMode = 'marathon'"
           >
@@ -49,7 +111,12 @@
             <button
               v-for="size in MARATHON_SIZES"
               :key="size"
-              :class="[$style.sizeBtn, marathonSize === size && $style.sizeBtnActive, !availableMarathonSizes.includes(size) && $style.modeBtnDisabled]"
+              :class="[
+                $style.sizeBtn,
+                marathonSize === size && $style.sizeBtnActive,
+                !availableMarathonSizes.includes(size) &&
+                  $style.modeBtnDisabled,
+              ]"
               :disabled="!availableMarathonSizes.includes(size)"
               @click="marathonSize = size"
             >
@@ -59,15 +126,18 @@
         </div>
 
         <div v-if="examMode === 'marathon'" :class="$style.marathonNote">
-          <template v-if="!canMarathon">dataset insuffisant — 2 blocs minimum requis</template>
-          <template v-else>{{ marathonSize / 40 }} blocs · {{ (marathonSize / 40) * 45 }} min · seuil 32/40 normalisé</template>
+          <template v-if="!canMarathon"
+            >dataset insuffisant — 2 blocs minimum requis</template
+          >
+          <template v-else
+            >{{ marathonSize / 40 }} blocs · {{ (marathonSize / 40) * 45 }} min
+            · seuil 32/40 normalisé</template
+          >
         </div>
       </WhimcPatch>
 
       <WhimcPatch accent="var(--c-bleu)">
-        <div :class="$style.patchHeading">
-          règles — mode {{ examMode }}
-        </div>
+        <div :class="$style.patchHeading">règles — mode {{ examMode }}</div>
         <div
           v-for="([k, v], index) in currentRules"
           :key="`rules-${index}`"
@@ -121,69 +191,11 @@
 
       <WhimcPatch>
         <div :class="$style.patchHeading">filtrer par thème</div>
-        <div :class="$style.themesContainer">
-          <button
-            :class="[
-              $style.themeBtn,
-              masterState === '×' && $style.themeBtnActive,
-              masterState === '~' && $style.themeBtnPartial,
-            ]"
-            @click="toggleMaster"
-          >
-            {{ masterState ? masterState + " " : "" }}Tous les thèmes
-          </button>
-          <div :class="$style.subThemeGroup">
-            <button
-              v-for="theme in THEMES_SUB"
-              :key="theme"
-              :class="[
-                $style.themeBtn,
-                selectedThemes.includes(theme) && $style.themeBtnActive,
-              ]"
-              @click="toggleTheme(theme)"
-            >
-              {{ selectedThemes.includes(theme) ? "× " : "" }}{{ theme }}
-            </button>
-          </div>
-        </div>
+        <ThemesFilter v-model="selectedThemes" :themes="THEMES_SUB" />
       </WhimcPatch>
 
       <WhimcPatch>
-        <div :class="$style.patchHeading">synchronisation des stats</div>
-        <div :class="$style.syncStatus">
-          <span
-            :class="$style.syncDot"
-            :style="{
-              background: syncKey ? 'var(--c-vert)' : 'var(--c-linenD)',
-            }"
-          />
-          <span>{{
-            syncKey
-              ? "clé active — stats synchro multi-appareils"
-              : "hors-ligne — stats locales uniquement"
-          }}</span>
-        </div>
-        <div :class="$style.syncInputRow">
-          <input
-            v-model="syncKey"
-            :class="$style.syncInput"
-            type="password"
-            placeholder="coller votre clé de sync →"
-            autocomplete="off"
-          />
-        </div>
-        <div :class="$style.syncActions">
-          <button :class="$style.syncBtn" @click="generateSyncKey">
-            générer
-          </button>
-          <button
-            :class="[$style.syncBtn, !syncKey && $style.syncBtnDisabled]"
-            :disabled="!syncKey"
-            @click="copySyncKey"
-          >
-            {{ copied ? "× copié !" : "copier" }}
-          </button>
-        </div>
+        <div :class="$style.patchHeading">stats</div>
 
         <div v-if="statsDist.total > 0" :class="$style.statsDist">
           <div :class="$style.statsDistRow">
@@ -230,11 +242,16 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { THEMES, RULES } from "../../utils/constants";
-import { MARATHON_SIZES, MISE_COUNT, type MarathonSize } from "../../composables/useExamEngine";
+import {
+  MARATHON_SIZES,
+  MISE_COUNT,
+  type MarathonSize,
+} from "../../composables/useExamEngine";
 import { useStats } from "../../composables/useStats";
 import CrossStitch from "../ui/CrossStitch.vue";
 import WhimcPatch from "../ui/WhimcPatch.vue";
 import WhimcBtn from "../ui/WhimcBtn.vue";
+import ThemesFilter from "../ui/ThemesFilter.vue";
 
 type DatasetSource = "bundled" | "url" | "file";
 
@@ -254,23 +271,6 @@ const SS_CONTENT_KEY = "whimec-dataset-content";
 
 const THEMES_SUB = THEMES.slice(1);
 const selectedThemes = ref<string[]>([...THEMES_SUB]);
-
-const masterState = computed<"×" | "~" | "">(() => {
-  if (selectedThemes.value.length === THEMES_SUB.length) return "×";
-  if (selectedThemes.value.length === 0) return "";
-  return "~";
-});
-
-function toggleMaster() {
-  selectedThemes.value =
-    selectedThemes.value.length === THEMES_SUB.length ? [] : [...THEMES_SUB];
-}
-
-function toggleTheme(theme: string) {
-  selectedThemes.value = selectedThemes.value.includes(theme)
-    ? selectedThemes.value.filter((t) => t !== theme)
-    : [...selectedThemes.value, theme];
-}
 const datasetSource = ref<DatasetSource>("bundled");
 const datasetUrl = ref("");
 const fileName = ref("");
@@ -333,10 +333,18 @@ onMounted(() => {
   if (savedUrl) datasetUrl.value = savedUrl;
   const savedSyncKey = localStorage.getItem(LS_SYNC_KEY);
   if (savedSyncKey) syncKey.value = savedSyncKey;
-  const savedMode = localStorage.getItem(LS_MODE_KEY) as "super-hard" | "marathon" | null;
+  const savedMode = localStorage.getItem(LS_MODE_KEY) as
+    | "super-hard"
+    | "marathon"
+    | null;
   if (savedMode) examMode.value = savedMode;
-  const savedMarathonSize = parseInt(localStorage.getItem(LS_MARATHON_SIZE_KEY) ?? "0");
-  if (savedMarathonSize && MARATHON_SIZES.includes(savedMarathonSize as MarathonSize)) {
+  const savedMarathonSize = parseInt(
+    localStorage.getItem(LS_MARATHON_SIZE_KEY) ?? "0",
+  );
+  if (
+    savedMarathonSize &&
+    MARATHON_SIZES.includes(savedMarathonSize as MarathonSize)
+  ) {
     marathonSize.value = savedMarathonSize as MarathonSize;
   }
   const savedThemes = localStorage.getItem(LS_THEMES_KEY);
@@ -359,7 +367,9 @@ watch(syncKey, (v) => {
   if (v) setSyncKey(v);
 });
 watch(examMode, (v) => localStorage.setItem(LS_MODE_KEY, v));
-watch(marathonSize, (v) => localStorage.setItem(LS_MARATHON_SIZE_KEY, String(v)));
+watch(marathonSize, (v) =>
+  localStorage.setItem(LS_MARATHON_SIZE_KEY, String(v)),
+);
 watch(availableMarathonSizes, (sizes) => {
   if (sizes.length > 0 && !sizes.includes(marathonSize.value)) {
     marathonSize.value = sizes[0];
@@ -380,7 +390,8 @@ function handleFileSelect(e: Event) {
       sessionStorage.setItem(SS_CONTENT_KEY, raw);
       fileName.value = file.name;
       fileMiseCount.value = Array.isArray(parsed)
-        ? parsed.filter((q: { type?: string }) => q?.type === "mise-situation").length
+        ? parsed.filter((q: { type?: string }) => q?.type === "mise-situation")
+            .length
         : 0;
     } catch {
       fileError.value = "fichier JSON invalide";
@@ -391,7 +402,10 @@ function handleFileSelect(e: Event) {
 
 const MARATHON_RULES = computed(() => [
   [`${marathonSize.value} questions`, `${marathonSize.value / 40} blocs de 40`],
-  [`${(marathonSize.value / 40) * 45} minutes`, "durée totale · chrono continu"],
+  [
+    `${(marathonSize.value / 40) * 45} minutes`,
+    "durée totale · chrono continu",
+  ],
   ["32 / 40 normalisé", "seuil par bloc et global"],
   ["Bilan obligatoire", "résultats affichés après chaque bloc"],
   ["[Faible Confiance] Toggle", "orange · à réviser avant soumission"],
@@ -404,7 +418,8 @@ const currentRules = computed(() =>
 const canStart = computed(() => {
   if (datasetSource.value === "url") return datasetUrl.value.trim().length > 0;
   if (datasetSource.value === "file") return fileName.value.length > 0;
-  if (examMode.value === "marathon") return availableMarathonSizes.value.includes(marathonSize.value);
+  if (examMode.value === "marathon")
+    return availableMarathonSizes.value.includes(marathonSize.value);
   return true;
 });
 
@@ -509,7 +524,8 @@ function handleStart() {
   max-width: 55%;
 }
 
-.sourceOptions {
+.sourceOptions,
+.learnContainer {
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
@@ -587,43 +603,6 @@ function handleStart() {
   font-family: var(--f-mono);
   font-size: 0.65rem;
   color: var(--c-rouge);
-}
-
-.themesContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.themeBtn {
-  background: transparent;
-  border: 1px dashed var(--c-linenD);
-  color: var(--c-encre);
-  font-family: var(--f-sans);
-  font-size: 0.78rem;
-  text-align: left;
-  padding: 0.38rem 0.65rem;
-  cursor: pointer;
-}
-
-.themeBtnActive {
-  background: var(--c-bleu-pale);
-  border-color: var(--c-bleu);
-  color: var(--c-bleu);
-}
-
-.themeBtnPartial {
-  border-color: var(--c-sepia);
-  color: var(--c-sepia);
-}
-
-.subThemeGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.1rem;
-  padding-left: 0.85rem;
-  border-left: 1px dashed var(--c-linenD);
 }
 
 .syncStatus {
@@ -784,8 +763,9 @@ function handleStart() {
   padding: 0.85rem !important;
 }
 
-.btnTimeline {
-  width: 100%;
+.btnTimeline,
+.btnLearn {
+  flex-basis: 1/2;
   font-size: 0.78rem !important;
 }
 

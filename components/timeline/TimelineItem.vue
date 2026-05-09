@@ -1,10 +1,17 @@
 <template>
-  <button :class="$style.item" :style="{ '--theme-c': themeColor }" @click="$emit('select')">
+  <button
+    :class="$style.item"
+    :style="{ '--theme-c': themeColor }"
+    :data-year="entry.year"
+    @click="$emit('select')"
+  >
     <div :class="$style.year">
       {{ entry.year }}{{ entry.year_end ? `–${entry.year_end}` : "" }}
     </div>
     <div :class="$style.body">
-      <span :class="$style.badge">{{ THEME_SHORT[entry.theme] ?? entry.theme }}</span>
+      <span :class="$style.badge">{{
+        THEME_SHORT[entry.theme] ?? entry.theme
+      }}</span>
       <p :class="$style.label">{{ entry.label }}</p>
     </div>
   </button>
@@ -12,16 +19,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { THEME_SHORT } from "../utils/constants";
-import type { TimelineEntry } from "../types/timeline";
-
-const THEME_COLOR: Record<string, string> = {
-  "Principes et valeurs de la République": "var(--c-bleu)",
-  "Système institutionnel et politique": "var(--c-encre)",
-  "Droits et devoirs": "var(--c-vert)",
-  "Histoire, géographie et culture": "var(--c-orange)",
-  "Vivre dans la société française": "var(--c-rouge)",
-};
+import { THEME_SHORT, THEME_COLOR } from "../../utils/constants";
+import type { TimelineEntry } from "../../types/timeline";
 
 const props = defineProps<{ entry: TimelineEntry }>();
 defineEmits<{ select: [] }>();
@@ -32,7 +31,7 @@ const themeColor = computed(
 </script>
 
 <style lang="scss" module>
-@use "../styles/tokens" as *;
+@use "../../styles/tokens" as *;
 
 .item {
   display: grid;
@@ -45,7 +44,9 @@ const themeColor = computed(
   border-left: 3px solid var(--theme-c);
   padding: 0.75rem 0.85rem;
   cursor: pointer;
-  transition: border-color 80ms ease-out, background 80ms ease-out;
+  transition:
+    border-color 80ms ease-out,
+    background 80ms ease-out;
 
   &:hover,
   &:focus-visible {

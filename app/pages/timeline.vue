@@ -3,5 +3,5 @@
 </template>
 
 <script setup lang="ts">
-import TimelineScreen from "../../components/TimelineScreen.vue";
+import TimelineScreen from "../../components/timeline/TimelineScreen.vue";
 </script>
