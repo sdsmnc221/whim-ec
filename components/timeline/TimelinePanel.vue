@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { watch } from "vue";
-import type { TimelineEntry } from "../types/timeline";
+import type { TimelineEntry } from "../../types/timeline";
 
 const props = defineProps<{ entry: TimelineEntry | null }>();
 defineEmits<{ close: [] }>();
@@ -45,7 +45,7 @@ watch(
 </script>
 
 <style lang="scss" module>
-@use "../styles/tokens" as *;
+@use "../../styles/tokens" as *;
 
 .overlay {
   position: fixed;
@@ -122,25 +122,5 @@ watch(
   line-height: 1.7;
   color: var(--c-encre);
   margin: 0;
-}
-</style>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease-out;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: transform 0.25s ease-out;
-}
-.slide-up-enter-from,
-.slide-up-leave-to {
-  transform: translateY(100%);
 }
 </style>

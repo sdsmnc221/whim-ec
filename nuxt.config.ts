@@ -37,7 +37,7 @@ export default defineNuxtConfig({
       link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
     },
   },
-  css: ["~/styles/_tokens.scss"],
+  css: ["~/styles/_tokens.scss", "~/styles/global.scss"],
   vite: {
     optimizeDeps: {
       include: ["convex-vue", "convex/server"],
