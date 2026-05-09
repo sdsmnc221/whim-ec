@@ -3,14 +3,27 @@ import { useConvexClient, useConvexMutation } from "convex-vue";
 import { api } from "../convex/_generated/api";
 import type { ConceptProgress } from "../types/concept";
 
+const LS_KEY = "whimec-concept-progress";
+const LS_SYNC_KEY = "whimec-sync-key";
+
 export function useConceptProgress() {
   const client = useConvexClient();
-  const { mutate: upsert } = useConvexMutation(api.conceptProgress.upsert);
+  const { mutate: upsertFn } = useConvexMutation(api.conceptProgress.upsert);
 
-  const records = ref<ConceptProgress[]>([]);
+  const records = ref<ConceptProgress[]>(
+    import.meta.client
+      ? (JSON.parse(localStorage.getItem(LS_KEY) ?? "[]") as ConceptProgress[])
+      : [],
+  );
+
+  function getSyncKey(): string | null {
+    return import.meta.client ? localStorage.getItem(LS_SYNC_KEY) : null;
+  }
 
   async function pullFromConvex() {
-    const data = await client.query(api.conceptProgress.list, {});
+    const syncKey = getSyncKey();
+    if (!syncKey) return;
+    const data = await client.query(api.conceptProgress.list, { syncKey });
     records.value = (data ?? []).map(
       (r: { conceptId: string; seen: boolean; bookmarked: boolean }) => ({
         conceptId: r.conceptId,
@@ -18,6 +31,7 @@ export function useConceptProgress() {
         bookmarked: r.bookmarked,
       }),
     );
+    localStorage.setItem(LS_KEY, JSON.stringify(records.value));
   }
 
   const progressMap = computed(() => {
@@ -38,15 +52,38 @@ export function useConceptProgress() {
     );
   }
 
+  function writeLocal(update: ConceptProgress) {
+    const existing = records.value.find((r) => r.conceptId === update.conceptId);
+    if (existing) {
+      Object.assign(existing, update);
+    } else {
+      records.value.push(update);
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(records.value));
+  }
+
   async function markSeen(conceptId: string) {
     if (getProgress(conceptId).seen) return;
-    await upsert({ conceptId, seen: true });
-    await pullFromConvex();
+    const syncKey = getSyncKey();
+    if (syncKey) {
+      await upsertFn({ syncKey, conceptId, seen: true });
+      await pullFromConvex();
+    } else {
+      const prev = getProgress(conceptId);
+      writeLocal({ ...prev, conceptId, seen: true });
+    }
   }
 
   async function toggleBookmark(conceptId: string) {
-    await upsert({ conceptId, bookmarked: !getProgress(conceptId).bookmarked });
-    await pullFromConvex();
+    const syncKey = getSyncKey();
+    const newVal = !getProgress(conceptId).bookmarked;
+    if (syncKey) {
+      await upsertFn({ syncKey, conceptId, bookmarked: newVal });
+      await pullFromConvex();
+    } else {
+      const prev = getProgress(conceptId);
+      writeLocal({ ...prev, conceptId, bookmarked: newVal });
+    }
   }
 
   const bookmarkedIds = computed(() =>

@@ -3,10 +3,13 @@ import { v } from "convex/values";
 
 export default defineSchema({
   conceptProgress: defineTable({
+    syncKey: v.string(),
     conceptId: v.string(),
     seen: v.boolean(),
     bookmarked: v.boolean(),
-  }).index("by_concept", ["conceptId"]),
+  })
+    .index("by_key", ["syncKey"])
+    .index("by_key_concept", ["syncKey", "conceptId"]),
 
   questionStats: defineTable({
     syncKey: v.string(),

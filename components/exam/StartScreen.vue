@@ -13,6 +13,49 @@
         </div>
       </div>
 
+      <div :class="$style.sectionHeading">sync</div>
+
+      <WhimcPatch>
+        <div :class="$style.patchHeading">synchronisation des stats</div>
+        <div :class="$style.syncStatus">
+          <span
+            :class="$style.syncDot"
+            :style="{
+              background: syncKey ? 'var(--c-vert)' : 'var(--c-linenD)',
+            }"
+          />
+          <span>{{
+            syncKey
+              ? "clé active — stats synchro multi-appareils"
+              : "hors-ligne — stats locales uniquement"
+          }}</span>
+        </div>
+        <div :class="$style.syncInputRow">
+          <input
+            v-model="syncKey"
+            :class="$style.syncInput"
+            type="password"
+            placeholder="coller votre clé de sync →"
+            autocomplete="off"
+          />
+        </div>
+        <div :class="$style.syncActions">
+          <button :class="$style.syncBtn" @click="generateSyncKey">
+            générer
+          </button>
+          <button
+            :class="[$style.syncBtn, !syncKey && $style.syncBtnDisabled]"
+            :disabled="!syncKey"
+            @click="copySyncKey"
+          >
+            {{ copied ? "× copié !" : "copier" }}
+          </button>
+        </div>
+      </WhimcPatch>
+
+      <!-- ── divider ── -->
+      <div :class="$style.divider"><span>×</span></div>
+
       <div :class="$style.sectionHeading">learn</div>
 
       <WhimcPatch>
@@ -36,7 +79,6 @@
         </div>
       </WhimcPatch>
 
-      <!-- ── divider ── -->
       <div :class="$style.divider"><span>×</span></div>
 
       <div :class="$style.sectionHeading">test</div>
@@ -153,41 +195,7 @@
       </WhimcPatch>
 
       <WhimcPatch>
-        <div :class="$style.patchHeading">synchronisation des stats</div>
-        <div :class="$style.syncStatus">
-          <span
-            :class="$style.syncDot"
-            :style="{
-              background: syncKey ? 'var(--c-vert)' : 'var(--c-linenD)',
-            }"
-          />
-          <span>{{
-            syncKey
-              ? "clé active — stats synchro multi-appareils"
-              : "hors-ligne — stats locales uniquement"
-          }}</span>
-        </div>
-        <div :class="$style.syncInputRow">
-          <input
-            v-model="syncKey"
-            :class="$style.syncInput"
-            type="password"
-            placeholder="coller votre clé de sync →"
-            autocomplete="off"
-          />
-        </div>
-        <div :class="$style.syncActions">
-          <button :class="$style.syncBtn" @click="generateSyncKey">
-            générer
-          </button>
-          <button
-            :class="[$style.syncBtn, !syncKey && $style.syncBtnDisabled]"
-            :disabled="!syncKey"
-            @click="copySyncKey"
-          >
-            {{ copied ? "× copié !" : "copier" }}
-          </button>
-        </div>
+        <div :class="$style.patchHeading">stats</div>
 
         <div v-if="statsDist.total > 0" :class="$style.statsDist">
           <div :class="$style.statsDistRow">
