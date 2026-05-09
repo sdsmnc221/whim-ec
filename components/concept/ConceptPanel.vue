@@ -29,7 +29,6 @@
         </div>
 
         <div :class="$style.body">
-          <!-- Définition -->
           <section :class="$style.section">
             <h2 :class="$style.sectionTitle">Définition</h2>
             <!-- eslint-disable-next-line vue/no-v-html -->
@@ -39,7 +38,6 @@
             />
           </section>
 
-          <!-- À retenir -->
           <section v-if="concept.key_points.length" :class="$style.section">
             <h2 :class="$style.sectionTitle">À retenir</h2>
             <ul :class="$style.list">
@@ -53,20 +51,18 @@
             </ul>
           </section>
 
-          <!-- Liens thématiques -->
           <section v-if="concept.thematic_links" :class="$style.section">
             <h2 :class="$style.sectionTitle">Liens thématiques</h2>
             <p :class="$style.text">{{ concept.thematic_links }}</p>
           </section>
 
-          <!-- Événements liés -->
           <section v-if="concept.timeline_refs.length" :class="$style.section">
             <h2 :class="$style.sectionTitle">Événements liés</h2>
             <div :class="$style.chips">
               <NuxtLink
                 v-for="(ref, i) in concept.timeline_refs"
                 :key="i"
-                :to="`/timeline?year=${ref.year}`"
+                :to="`/timeline?year=${ref.year}&from=concepts`"
                 :class="$style.chip"
               >
                 {{ ref.year }}{{ ref.year_end ? `–${ref.year_end}` : "" }}
@@ -172,6 +168,7 @@ watch(
   background: none;
   border: 1px dashed var(--c-sepia);
   color: var(--c-sepia);
+  opacity: 0.5;
   font-size: 0.7rem;
   width: 2rem;
   height: 2rem;
@@ -186,8 +183,7 @@ watch(
   }
 
   &Active {
-    border-color: var(--c-encre);
-    color: var(--c-encre);
+    opacity: 1;
   }
 }
 

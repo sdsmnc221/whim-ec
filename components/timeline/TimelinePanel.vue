@@ -11,7 +11,16 @@
           <span :class="$style.year">
             {{ entry.year }}{{ entry.year_end ? `–${entry.year_end}` : "" }}
           </span>
-          <button :class="$style.closeBtn" @click="$emit('close')">×</button>
+          <div :class="$style.headerActions">
+            <button
+              v-if="fromConcepts"
+              :class="$style.retourBtn"
+              @click="navigateTo('/concepts')"
+            >
+              ← concepts
+            </button>
+            <button :class="$style.closeBtn" @click="$emit('close')">×</button>
+          </div>
         </div>
 
         <div :class="$style.body">
@@ -32,7 +41,10 @@
 import { watch } from "vue";
 import type { TimelineEntry } from "../../types/timeline";
 
-const props = defineProps<{ entry: TimelineEntry | null }>();
+const props = defineProps<{
+  entry: TimelineEntry | null;
+  fromConcepts?: boolean;
+}>();
 defineEmits<{ close: [] }>();
 
 watch(
@@ -78,10 +90,35 @@ watch(
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   padding: 0.75rem 0 0.65rem;
   border-bottom: 1px dashed var(--c-linenD);
   margin-bottom: 1rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.retourBtn {
+  background: none;
+  border: 1px dashed var(--c-sepia);
+  color: var(--c-sepia);
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  height: 2rem;
+  padding: 0 0.55rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    border-color: var(--c-encre);
+    color: var(--c-encre);
+  }
 }
 
 .year {

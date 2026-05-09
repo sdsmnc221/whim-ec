@@ -1,19 +1,23 @@
 <template>
   <div :class="$style.header">
     <button :class="$style.retour" @click="navigateTo('/')">← retour</button>
-    <span :class="$style.title"
-      >concepts républicains
-      <span v-if="source">· {{ filteredConcepts.length }}</span></span
-    >
+    <span :class="$style.title">
+      concepts républicains
+      <span v-if="source"
+        >·
+        {{
+          showBookmarks ? bookmarkedConcepts.length : filteredConcepts.length
+        }}</span
+      >
+    </span>
   </div>
 
-  <!-- Source picker — shown until a source is loaded -->
   <div v-if="!source" :class="$style.pickerScreen">
     <div :class="$style.pickerHeading">fiches de révision</div>
     <WhimcPatch>
       <div :class="$style.patchHeading">source</div>
       <div :class="$style.sourceOptions">
-        <button @click="loadBundled">échantillon intégré</button>
+        <button @click="handleLoadBundled">échantillon intégré</button>
         <label>
           importer un fichier JSON
           <input
@@ -28,35 +32,61 @@
     </WhimcPatch>
   </div>
 
-  <!-- Main screen -->
   <div v-else :class="$style.screen">
+    <div :class="$style.filterWrap">
+      <div :class="$style.filterHeading">filtrer par favori.s</div>
+      <button
+        v-if="source"
+        :class="[
+          $style.bookmarkToggle,
+          showBookmarks && $style.bookmarkToggleActive,
+        ]"
+        @click="showBookmarks = !showBookmarks"
+      >
+        ◆ {{ bookmarkedIds.length }}
+      </button>
+    </div>
     <ThemesFilter
+      v-if="!showBookmarks"
       v-model="selectedThemes"
       :themes="THEMES_SUB"
       variant="chips"
     />
 
-    <!-- Empty state -->
-    <p v-if="selectedThemes.length === 0" :class="$style.empty">
-      Choisissez un thème pour explorer les fiches
-    </p>
-    <p v-else-if="filteredConcepts.length === 0" :class="$style.empty">
-      Aucune fiche pour ces thèmes
-    </p>
+    <template v-if="showBookmarks">
+      <p v-if="bookmarkedConcepts.length === 0" :class="$style.empty">
+        Aucun favori pour l'instant
+      </p>
+      <div v-else :class="$style.grid">
+        <ConceptCard
+          v-for="c in bookmarkedConcepts"
+          :key="c.id"
+          :concept="c"
+          :progress="getProgress(c.id)"
+          @open="activeConceptId = c.id"
+        />
+      </div>
+    </template>
 
-    <!-- Grid -->
-    <div v-else :class="$style.grid">
-      <ConceptCard
-        v-for="c in filteredConcepts"
-        :key="c.id"
-        :concept="c"
-        :progress="getProgress(c.id)"
-        @open="activeConceptId = c.id"
-      />
-    </div>
+    <template v-else>
+      <p v-if="selectedThemes.length === 0" :class="$style.empty">
+        Choisissez un thème pour explorer les fiches
+      </p>
+      <p v-else-if="filteredConcepts.length === 0" :class="$style.empty">
+        Aucune fiche pour ces thèmes
+      </p>
+      <div v-else :class="$style.grid">
+        <ConceptCard
+          v-for="c in filteredConcepts"
+          :key="c.id"
+          :concept="c"
+          :progress="getProgress(c.id)"
+          @open="activeConceptId = c.id"
+        />
+      </div>
+    </template>
   </div>
 
-  <!-- Detail drawer — always mounted so v-if="concept" inside fires the enter transition -->
   <ConceptPanel
     :concept="activeConcept"
     :progress="activeProgress"
@@ -67,7 +97,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { useRoute } from "vue-router";
 import { THEMES } from "../../utils/constants";
 import { useConcepts } from "../../composables/useConcepts";
 import { useConceptProgress } from "../../composables/useConceptProgress";
@@ -77,25 +108,72 @@ import ThemesFilter from "../ui/ThemesFilter.vue";
 import WhimcPatch from "../ui/WhimcPatch.vue";
 
 const THEMES_SUB = THEMES.slice(1);
+const LS_SOURCE_KEY = "whimec-concepts-source";
+
 const {
   source,
+  concepts,
   filteredConcepts,
   selectedThemes,
   error,
   loadBundled,
   loadFile,
+  loadFromSessionStorage,
 } = useConcepts();
-const { getProgress, markSeen, toggleBookmark, pullFromConvex } =
+const { getProgress, markSeen, toggleBookmark, pullFromConvex, bookmarkedIds } =
   useConceptProgress();
 
-onMounted(() => pullFromConvex());
+const showBookmarks = ref(false);
+watch(source, () => {
+  showBookmarks.value = false;
+});
+
+onMounted(async () => {
+  const route = useRoute();
+  const conceptSlug = route.query.concept as string | undefined;
+  const savedSource = import.meta.client
+    ? (localStorage.getItem(LS_SOURCE_KEY) as "bundled" | "file" | null)
+    : null;
+
+  let loaded = false;
+
+  if (savedSource === "bundled") {
+    await loadBundled();
+    loaded = true;
+  } else if (savedSource === "file") {
+    loaded = await loadFromSessionStorage();
+    // file gone from sessionStorage but we have a direct concept backlink → fall back to bundled
+    if (!loaded && conceptSlug) {
+      await loadBundled();
+      loaded = true;
+    }
+  }
+
+  if (loaded && conceptSlug) {
+    const concept = concepts.value.find((c) => c.slug === conceptSlug);
+    if (concept) {
+      // ensure at least one of the concept's themes is selected so it appears in filteredConcepts
+      const needed = concept.themes.filter(
+        (t) => THEMES_SUB.includes(t) && !selectedThemes.value.includes(t),
+      );
+      if (needed.length)
+        selectedThemes.value = [...selectedThemes.value, ...needed];
+      await nextTick();
+      activeConceptId.value = concept.id;
+    }
+  }
+
+  pullFromConvex();
+});
 
 const activeConceptId = ref<string | null>(null);
 const activeConcept = computed(() =>
   activeConceptId.value
-    ? (filteredConcepts.value.find((c) => c.id === activeConceptId.value) ??
-      null)
+    ? (concepts.value.find((c) => c.id === activeConceptId.value) ?? null)
     : null,
+);
+const bookmarkedConcepts = computed(() =>
+  concepts.value.filter((c) => bookmarkedIds.value.includes(c.id)),
 );
 const activeProgress = computed(() =>
   activeConcept.value
@@ -103,7 +181,13 @@ const activeProgress = computed(() =>
     : { conceptId: "", seen: false, bookmarked: false },
 );
 
+async function handleLoadBundled() {
+  if (import.meta.client) localStorage.setItem(LS_SOURCE_KEY, "bundled");
+  await loadBundled();
+}
+
 function onFile(e: Event) {
+  if (import.meta.client) localStorage.setItem(LS_SOURCE_KEY, "file");
   const file = (e.target as HTMLInputElement).files?.[0];
   if (file) loadFile(file);
 }
@@ -188,6 +272,49 @@ function onFile(e: Event) {
   padding: 0.75rem 1.25rem;
   margin-bottom: 0.75rem;
   border-bottom: 1px dashed var(--c-linenD);
+}
+
+.filterWrap {
+  padding: 1rem 0;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px dashed var(--c-linenD);
+  display: flex;
+  align-items: baseline;
+}
+
+.filterHeading {
+  font-size: 0.5rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--c-sepia);
+  margin-bottom: 0.6rem;
+}
+
+.bookmarkToggle {
+  margin-left: auto;
+  background: none;
+  border: 1px dashed var(--c-linenD);
+  color: var(--c-sepia);
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    border-color 80ms,
+    color 80ms,
+    background 80ms;
+
+  &:hover {
+    border-color: var(--c-encre);
+    color: var(--c-encre);
+  }
+}
+
+.bookmarkToggleActive {
+  border-color: var(--c-encre);
+  color: var(--c-encre);
+  background: color-mix(in srgb, var(--c-encre) 6%, transparent);
 }
 
 .retour {

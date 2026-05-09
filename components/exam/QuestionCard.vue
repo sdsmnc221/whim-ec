@@ -8,20 +8,28 @@
         :seed="idx * 17 + 3"
       />
 
-      <!-- meta row -->
       <div :class="$style.meta">
         <div :class="$style.metaLeft">
           <span :class="$style.label">
-            {{ THEME_SHORT[q.theme] ?? q.theme }} · Q.{{ String(idx + 1).padStart(2, "0") }}/{{ total }}
+            {{ THEME_SHORT[q.theme] ?? q.theme }} · Q.{{
+              String(idx + 1).padStart(2, "0")
+            }}/{{ total }}
           </span>
-          <WhimcStamp v-if="isMise" color="var(--c-orange)" :angle="-1" :class="$style.miseStamp">
+          <WhimcStamp
+            v-if="isMise"
+            color="var(--c-orange)"
+            :angle="-1"
+            :class="$style.miseStamp"
+          >
             mise en situation
           </WhimcStamp>
         </div>
 
-        <!-- flag button -->
         <button
-          :class="[$style.flagBtn, flag === 'low-confidence' && $style.flagActive]"
+          :class="[
+            $style.flagBtn,
+            flag === 'low-confidence' && $style.flagActive,
+          ]"
           @click="$emit('flag')"
         >
           <span :class="$style.flagGlyph">~</span>
@@ -29,15 +37,16 @@
         </button>
       </div>
 
-      <!-- review banner -->
       <div v-if="phase === 'review'" :class="$style.reviewBanner">
-        {{ answer === null || answer === undefined ? "⚠ sans réponse" : "~ confiance faible — révision" }}
+        {{
+          answer === null || answer === undefined
+            ? "⚠ sans réponse"
+            : "~ confiance faible — révision"
+        }}
       </div>
 
-      <!-- question -->
       <div :class="$style.question">{{ q.question }}</div>
 
-      <!-- answers -->
       <div :class="$style.answers">
         <AnswerOption
           v-for="(ans, i) in q.displayAnswers"
@@ -52,7 +61,6 @@
         />
       </div>
 
-      <!-- explication — results only -->
       <div v-if="revealed" :class="$style.explication">
         {{ q.explication }}
       </div>

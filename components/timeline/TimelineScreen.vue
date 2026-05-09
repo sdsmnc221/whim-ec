@@ -1,6 +1,5 @@
 <template>
   <div :class="$style.screen">
-    <!-- sticky header -->
     <div :class="$style.header">
       <button :class="$style.retour" @click="navigateTo('/')">← retour</button>
       <span :class="$style.title"
@@ -18,7 +17,6 @@
       count-label="entrée"
     />
 
-    <!-- timeline list -->
     <div :class="$style.list">
       <TimelineItem
         v-for="(entry, i) in filteredEntries"
@@ -34,8 +32,11 @@
       </div>
     </div>
 
-    <!-- drill-down panel -->
-    <TimelinePanel :entry="selectedEntry" @close="selectedEntry = null" />
+    <TimelinePanel
+      :entry="selectedEntry"
+      :from-concepts="fromConcepts"
+      @close="selectedEntry = null"
+    />
   </div>
 </template>
 
@@ -54,6 +55,7 @@ const THEMES_SUB = THEMES.slice(1);
 
 const selectedThemes = ref<string[]>([...THEMES_SUB]);
 const selectedEntry = ref<TimelineEntry | null>(null);
+const fromConcepts = ref(false);
 
 const filteredEntries = computed(() => {
   if (selectedThemes.value.length === 0) return [];
@@ -64,17 +66,20 @@ onMounted(async () => {
   const route = useRoute();
   const yearParam = route.query.year ? Number(route.query.year) : null;
 
-  if (yearParam !== null) {
-    const matchingThemes = [
-      ...new Set(data.filter((e) => e.year === yearParam).map((e) => e.theme)),
-    ];
-    selectedThemes.value = matchingThemes;
-    await nextTick();
-    const el = document.querySelector(`[data-year="${yearParam}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
-    el?.classList.add("highlight-entry");
-    setTimeout(() => el?.classList.remove("highlight-entry"), 2000);
-  }
+  if (yearParam === null) return;
+
+  const match = data.find((e) => e.year === yearParam);
+  if (!match) return;
+
+  // auto-select the matching theme so the entry appears in the list
+  selectedThemes.value = [match.theme];
+  await nextTick();
+
+  // open the panel directly
+  selectedEntry.value = match;
+
+  // read ?from param only when a year was found
+  fromConcepts.value = route.query.from === "concepts";
 });
 </script>
 

@@ -2,7 +2,6 @@
   <div :class="$style.filterWrap">
     <div :class="$style.filterHeading">filtrer par thème</div>
 
-    <!-- list variant: vertical with master toggle (timeline-style) -->
     <template v-if="variant === 'list'">
       <div :class="$style.themesContainer">
         <button
@@ -34,7 +33,6 @@
       </div>
     </template>
 
-    <!-- chips variant: horizontal colored chips (concepts-style) -->
     <template v-else>
       <div :class="$style.chips">
         <button
@@ -161,7 +159,6 @@ function toggle(theme: string) {
 .chips {
   display: flex;
   flex-wrap: wrap;
-
   gap: 0.35rem;
 }
 

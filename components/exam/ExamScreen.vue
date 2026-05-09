@@ -1,6 +1,5 @@
 <template>
   <div :class="$style.screen">
-    <!-- Block summary (full-screen, replaces exam UI) -->
     <BlockSummaryScreen
       v-if="phase === 'block-summary'"
       :block-index="blockIndex"
@@ -11,7 +10,6 @@
     />
 
     <template v-else>
-      <!-- sticky header -->
       <div :class="$style.header">
         <TimerStrip
           :secs="timeLeft"
@@ -38,7 +36,6 @@
         </div>
       </div>
 
-      <!-- nav dots (block-scoped) -->
       <NavDots
         :total="blockSize"
         :answers="blockAnswers"
@@ -47,7 +44,6 @@
         @go="navTo($event + blockStart)"
       />
 
-      <!-- submit prompt -->
       <div v-if="showPrompt && phase === 'exam'" :class="$style.submitPrompt">
         <span :class="$style.promptText">
           {{
@@ -85,7 +81,6 @@
         </div>
       </div>
 
-      <!-- question (block-local idx) -->
       <QuestionCard
         v-if="questions.length"
         :q="questions[current]"
@@ -99,7 +94,6 @@
         @flag="handleFlag"
       />
 
-      <!-- bottom nav -->
       <div :class="$style.bottomNav">
         <template v-if="phase === 'review'">
           <WhimcBtn
@@ -138,7 +132,6 @@
         </template>
       </div>
 
-      <!-- status bar -->
       <div :class="$style.statusBar">
         <span>{{ blockAnsweredCount }}/{{ blockSize }} répondu</span>
         <span v-if="lowConfCount > 0" :class="$style.statusOrange">

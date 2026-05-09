@@ -4,6 +4,8 @@ import { THEMES } from "../utils/constants";
 
 type Source = "bundled" | "file";
 
+const SS_KEY = "whimec-concepts-content";
+
 export function useConcepts() {
   const THEMES_SUB = THEMES.slice(1);
 
@@ -38,12 +40,27 @@ export function useConcepts() {
     loading.value = true;
     error.value = null;
     try {
-      concepts.value = JSON.parse(await file.text()) as ConceptEntry[];
+      const text = await file.text();
+      concepts.value = JSON.parse(text) as ConceptEntry[];
       source.value = "file";
+      if (import.meta.client) sessionStorage.setItem(SS_KEY, text);
     } catch {
       error.value = "Fichier invalide — JSON malformé ou structure incorrecte.";
     } finally {
       loading.value = false;
+    }
+  }
+
+  async function loadFromSessionStorage(): Promise<boolean> {
+    if (!import.meta.client) return false;
+    const raw = sessionStorage.getItem(SS_KEY);
+    if (!raw) return false;
+    try {
+      concepts.value = JSON.parse(raw) as ConceptEntry[];
+      source.value = "file";
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -56,5 +73,6 @@ export function useConcepts() {
     filteredConcepts,
     loadBundled,
     loadFile,
+    loadFromSessionStorage,
   };
 }
