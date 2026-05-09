@@ -8,9 +8,6 @@
         <h1 :class="$style.heading">
           whim<span style="color: var(--c-rouge)">·</span>ec
         </h1>
-        <div :class="$style.description">
-          40 questions · 45 min · seuil 80å%
-        </div>
       </div>
 
       <div :class="$style.sectionHeading">sync</div>
