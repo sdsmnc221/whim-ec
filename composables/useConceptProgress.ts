@@ -25,7 +25,7 @@ export function useConceptProgress() {
     if (!syncKey) return;
     const data = await client.query(api.conceptProgress.list, { syncKey });
     records.value = (data ?? []).map(
-      (r: { conceptId: string; seen: boolean; bookmarked: boolean }) => ({
+      (r: { conceptId: string; seen: number; bookmarked: boolean }) => ({
         conceptId: r.conceptId,
         seen: r.seen,
         bookmarked: r.bookmarked,
@@ -46,14 +46,16 @@ export function useConceptProgress() {
     return (
       progressMap.value.get(conceptId) ?? {
         conceptId,
-        seen: false,
+        seen: 0,
         bookmarked: false,
       }
     );
   }
 
   function writeLocal(update: ConceptProgress) {
-    const existing = records.value.find((r) => r.conceptId === update.conceptId);
+    const existing = records.value.find(
+      (r) => r.conceptId === update.conceptId,
+    );
     if (existing) {
       Object.assign(existing, update);
     } else {
@@ -63,14 +65,14 @@ export function useConceptProgress() {
   }
 
   async function markSeen(conceptId: string) {
-    if (getProgress(conceptId).seen) return;
     const syncKey = getSyncKey();
+    const newCount = getProgress(conceptId).seen + 1;
     if (syncKey) {
-      await upsertFn({ syncKey, conceptId, seen: true });
+      await upsertFn({ syncKey, conceptId, seen: newCount });
       await pullFromConvex();
     } else {
       const prev = getProgress(conceptId);
-      writeLocal({ ...prev, conceptId, seen: true });
+      writeLocal({ ...prev, conceptId, seen: newCount });
     }
   }
 
@@ -94,7 +96,7 @@ export function useConceptProgress() {
 
   const seenIds = computed(() =>
     [...progressMap.value.values()]
-      .filter((p) => p.seen)
+      .filter((p) => p.seen > 0)
       .map((p) => p.conceptId),
   );
 

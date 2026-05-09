@@ -5,7 +5,9 @@
       :key="i - 1"
       :class="[
         $style.dot,
-        answers[i - 1] !== null && answers[i - 1] !== undefined && $style.answered,
+        answers[i - 1] !== null &&
+          answers[i - 1] !== undefined &&
+          $style.answered,
         flags[i - 1] === 'low-confidence' && $style.flagged,
         current === i - 1 && $style.current,
       ]"
@@ -32,7 +34,8 @@ defineEmits<{ go: [index: number] }>();
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
-  margin: 0.4rem 0 0.6rem;
+  margin: 0.4rem 0 1.2rem;
+  justify-content: center;
 }
 
 .dot {

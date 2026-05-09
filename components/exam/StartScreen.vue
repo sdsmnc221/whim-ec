@@ -8,6 +8,7 @@
         <h1 :class="$style.heading">
           whim<span style="color: var(--c-rouge)">·</span>ec
         </h1>
+        <div :class="$style.description">40 questions · 45 min · seuil 80%</div>
       </div>
 
       <div :class="$style.sectionHeading">sync</div>
@@ -103,8 +104,8 @@
           >
             {{ examMode === "marathon" ? "× " : "" }}marathon
           </button>
-          <template v-if="examMode === 'marathon'">
-            <span :class="$style.modeSep">·</span>
+          <div v-if="examMode === 'marathon'" :class="$style.marathonPick">
+            <span :class="$style.modeSep">pick: </span>
             <button
               v-for="size in MARATHON_SIZES"
               :key="size"
@@ -119,7 +120,7 @@
             >
               {{ marathonSize === size ? "× " : "" }}{{ size }}q
             </button>
-          </template>
+          </div>
         </div>
 
         <div v-if="examMode === 'marathon'" :class="$style.marathonNote">
@@ -747,11 +748,16 @@ function handleStart() {
 }
 
 .marathonNote {
+  margin-left: 1.2rem;
   margin-top: 0.55rem;
   font-family: var(--f-body);
   font-style: italic;
   font-size: 0.7rem;
   color: var(--c-sepia);
+}
+
+.marathonPick {
+  margin-left: 1.2rem;
 }
 
 .btnStart {

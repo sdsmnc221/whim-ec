@@ -14,7 +14,7 @@ export const upsert = mutation({
   args: {
     syncKey: v.string(),
     conceptId: v.string(),
-    seen: v.optional(v.boolean()),
+    seen: v.optional(v.number()),
     bookmarked: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -34,7 +34,7 @@ export const upsert = mutation({
       await ctx.db.insert("conceptProgress", {
         syncKey: args.syncKey,
         conceptId: args.conceptId,
-        seen: args.seen ?? false,
+        seen: args.seen ?? 0,
         bookmarked: args.bookmarked ?? false,
       });
     }

@@ -220,7 +220,7 @@ const seenConcepts = computed(() =>
 const activeProgress = computed(() =>
   activeConcept.value
     ? getProgress(activeConcept.value.id)
-    : { conceptId: "", seen: false, bookmarked: false },
+    : { conceptId: "", seen: 0, bookmarked: false },
 );
 
 async function handleLoadBundled() {

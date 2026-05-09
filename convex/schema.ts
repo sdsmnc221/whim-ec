@@ -5,7 +5,7 @@ export default defineSchema({
   conceptProgress: defineTable({
     syncKey: v.string(),
     conceptId: v.string(),
-    seen: v.boolean(),
+    seen: v.number(),
     bookmarked: v.boolean(),
   })
     .index("by_key", ["syncKey"])

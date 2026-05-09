@@ -16,6 +16,6 @@ export interface ConceptEntry {
 
 export interface ConceptProgress {
   conceptId: string;
-  seen: boolean;
+  seen: number;
   bookmarked: boolean;
 }
