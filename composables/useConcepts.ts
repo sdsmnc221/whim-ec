@@ -35,6 +35,8 @@ function isRelevantConcept(c: ConceptEntry): boolean {
   return true;
 }
 
+const THEME_ORDER = THEMES.slice(1);
+
 export function useConcepts() {
   const THEMES_SUB = THEMES.slice(1);
 
@@ -46,9 +48,14 @@ export function useConcepts() {
 
   const filteredConcepts = computed(() => {
     if (selectedThemes.value.length === 0) return [];
-    return concepts.value.filter((c) =>
-      c.themes.some((t) => selectedThemes.value.includes(t)),
-    );
+    return concepts.value
+      .filter((c) => c.themes.some((t) => selectedThemes.value.includes(t)))
+      .sort((a, b) => {
+        const ta = THEME_ORDER.findIndex((t) => a.themes.includes(t));
+        const tb = THEME_ORDER.findIndex((t) => b.themes.includes(t));
+        if (ta !== tb) return ta - tb;
+        return a.title.localeCompare(b.title, "fr");
+      });
   });
 
   async function loadBundled() {
@@ -100,7 +107,9 @@ export function useConcepts() {
     const raw = sessionStorage.getItem(SS_KEY);
     if (!raw) return false;
     try {
-      concepts.value = (JSON.parse(raw) as ConceptEntry[]).filter(isRelevantConcept);
+      concepts.value = (JSON.parse(raw) as ConceptEntry[]).filter(
+        isRelevantConcept,
+      );
       source.value = "file";
       return true;
     } catch {
