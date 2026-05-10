@@ -26,8 +26,21 @@ export function useConcepts() {
     loading.value = true;
     error.value = null;
     try {
-      const data = await import("../assets/data/concepts_sample.json");
-      concepts.value = data.default as ConceptEntry[];
+      const modules = import.meta.glob<{ default: ConceptEntry[] }>(
+        "../assets/data/concepts_sample_*.json",
+        { eager: true },
+      );
+      const sorted = Object.entries(modules).sort(([a], [b]) =>
+        a.localeCompare(b),
+      );
+      const merged = new Map<string, ConceptEntry>();
+      for (const [, mod] of sorted) {
+        for (const concept of mod.default) {
+          merged.set(concept.id, concept);
+        }
+      }
+      if (merged.size === 0) throw new Error("no files matched");
+      concepts.value = [...merged.values()];
       source.value = "bundled";
     } catch {
       error.value = "Impossible de charger l'échantillon intégré.";
