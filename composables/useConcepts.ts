@@ -6,6 +6,35 @@ type Source = "bundled" | "file";
 
 const SS_KEY = "whimec-concepts-content";
 
+const VALID_THEMES = new Set(THEMES.slice(1));
+
+// Single-word titles that are fragments, common nouns, or past participles —
+const TITLE_BLOCKLIST = new Set([
+  "Aujourd", // fragment of Aujourd'hui
+  "États", // fragment of États-Unis
+  "Gaulle", // fragment of de Gaulle
+  "Notre", // fragment of Notre-Dame
+  "Esprit", // fragment of L'Esprit des lois
+  "Misérables", // fragment of Les Misérables
+  "Seule", // adjective
+  "Figure", // generic noun
+  "Exposition", // generic noun
+  "Article", // generic noun
+  "Protection", // generic noun
+  "Ouest", // directional noun
+  "Publié", // past participle
+  "Convention", // generic noun
+]);
+
+function isRelevantConcept(c: ConceptEntry): boolean {
+  if (!c.themes.some((t) => VALID_THEMES.has(t))) return false;
+  if (c.definition.trim().length < 30) return false;
+  if (c.key_points.length === 0) return false;
+  if (c.title.trim().length < 4) return false;
+  if (TITLE_BLOCKLIST.has(c.title.trim())) return false;
+  return true;
+}
+
 export function useConcepts() {
   const THEMES_SUB = THEMES.slice(1);
 
@@ -40,7 +69,7 @@ export function useConcepts() {
         }
       }
       if (merged.size === 0) throw new Error("no files matched");
-      concepts.value = [...merged.values()];
+      concepts.value = [...merged.values()].filter(isRelevantConcept);
       source.value = "bundled";
     } catch {
       error.value = "Impossible de charger l'échantillon intégré.";
@@ -54,7 +83,9 @@ export function useConcepts() {
     error.value = null;
     try {
       const text = await file.text();
-      concepts.value = JSON.parse(text) as ConceptEntry[];
+      concepts.value = (JSON.parse(text) as ConceptEntry[]).filter(
+        isRelevantConcept,
+      );
       source.value = "file";
       if (import.meta.client) sessionStorage.setItem(SS_KEY, text);
     } catch {
@@ -69,7 +100,7 @@ export function useConcepts() {
     const raw = sessionStorage.getItem(SS_KEY);
     if (!raw) return false;
     try {
-      concepts.value = JSON.parse(raw) as ConceptEntry[];
+      concepts.value = (JSON.parse(raw) as ConceptEntry[]).filter(isRelevantConcept);
       source.value = "file";
       return true;
     } catch {
